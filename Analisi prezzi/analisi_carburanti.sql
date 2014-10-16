@@ -13,9 +13,13 @@ UPDATE tmp_1 SET name = REPLACE( name, '"', '' ), addr = REPLACE( addr, '"', '' 
 
 UPDATE tmp_1 SET lat = ROUND(lat, 7), lon = ROUND(lon, 7);
 
-CREATE TABLE distributori_ AS SELECT id, addr, bnd, comune, ROUND(lat, 7) AS lat, ROUND(lon, 7) AS lon, name, provincia FROM tmp_1 WHERE lat>30 AND LON > 6;
+CREATE TABLE distributori_ (id INTEGER NOT NULL PRIMARY KEY, addr TEXT, bnd TEXT, comune TEXT, lat DOUBLE, lon DOUBLE, name TEXT, provincia TEXT);
 
-CREATE TABLE prezzi_ as SELECT * FROM prezzi;
+INSERT INTO distributori_ (id, addr, bnd, comune, lat, lon, name, provincia) SELECT id, addr, bnd, comune, ROUND(lat, 7) AS lat, ROUND(lon, 7) AS lon, name, provincia FROM tmp_1 WHERE lat>30 AND LON > 6;
+
+CREATE TABLE prezzi_ (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, dIns datetime, carb TEXT, isSelf INTEGER, prezzo DUOBLE, dScrape INTEGER); 
+
+INSERT INTO prezzi_ (id_d, dIns, carb, isSelf, prezzo, dScrape) SELECT id_d, dIns, carb, isSelf, prezzo, dScrape FROM prezzi;
 
 DROP TABLE tmp_1;
 
@@ -39,13 +43,15 @@ UPDATE tmp_6 SET carb = carburante_precedente, prezzo = prezzo_precedente WHERE 
 
 SELECT AddGeometryColumn('distributori_', 'Geometry', 32632, 'POINT', 'XY');
 
-UPDATE distributori_ SET Geometry=MakePoint(lon, lat, 32632);
+UPDATE distributori_ SET Geometry = ST_Transform(MakePoint(lon, lat, 4326), 32632);
 
 ALTER TABLE distributori_ ADD COLUMN cod_istat INTEGER;
- 
+
 UPDATE distributori_ SET cod_istat = (SELECT comuni.COD_ISTAT FROM comuni WHERE ST_Contains(comuni.Geometry, distributori_.Geometry));
 
-CREATE TABLE distributori_prezzi_analisi AS SELECT a.id AS id, a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.ROWID AS ROWID, b.lat AS lat, b.lon AS Y FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
+CREATE TABLE distributori_prezzi_analisi (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE, carb TEXT, prezzo DOUBLE, lat DOUBLE, lon DOUBLE);
+
+INSERT INTO distributori_prezzi_analisi (id_d, data, day, carb, prezzo, lat, lon) SELECT id, a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.lat AS lat, b.lon AS lon FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
 
 CREATE INDEX index_prezzo ON distributori_prezzi_analisi (prezzo);
 
