@@ -75,6 +75,8 @@ DROP TABLE tmp_5;
 
 DROP TABLE tmp_6;
 
+SELECT DiscardGeometryColumn ('comuni', 'Geometry');
+
 DROP TABLE comuni;
 
 DROP VIEW vtmp_1;
