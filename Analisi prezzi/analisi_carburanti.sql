@@ -51,13 +51,13 @@ UPDATE distributori_ SET cod_istat = (SELECT comuni.COD_ISTAT FROM comuni WHERE 
 
 CREATE TABLE distributori_prezzi_analisi (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE, carb TEXT, prezzo DOUBLE, lat DOUBLE, lon DOUBLE);
 
-INSERT INTO distributori_prezzi_analisi (id_d, data, day, carb, prezzo, lat, lon) SELECT id, a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.lat AS lat, b.lon AS lon FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
+INSERT INTO distributori_prezzi_analisi (id_d, data, day, carb, prezzo, lat, lon) SELECT a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.lat AS lat, b.lon AS lon FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
 
 CREATE INDEX index_prezzo ON distributori_prezzi_analisi (prezzo);
 
-SELECT AddGeometryColumn('distributori_prezzo_analisi', 'Geometry', 32632, 'POINT', 'XY');
+SELECT AddGeometryColumn('distributori_prezzi_analisi', 'Geometry', 32632, 'POINT', 'XY');
 
-UPDATE distributori_prezzo_analisi SET Geometry=MakePoint(lon, lat, 32632);
+UPDATE distributori_prezzi_analisi SET Geometry=ST_Transform(MakePoint(lon, lat, 4326), 32632);
 
 SELECT CreateSpatialIndex('distributori_prezzi_analisi','Geometry');
 
