@@ -55,6 +55,8 @@ INSERT INTO distributori_prezzi_analisi (id_d, data, day, carb, prezzo, lat, lon
 
 CREATE INDEX index_prezzo ON distributori_prezzi_analisi (prezzo);
 
+CREATE INDEX index_cod_istat ON distributori_prezzi_analisi (cod_istat);
+
 SELECT AddGeometryColumn('distributori_prezzi_analisi', 'Geometry', 32632, 'POINT', 'XY');
 
 UPDATE distributori_prezzi_analisi SET Geometry=ST_Transform(MakePoint(lon, lat, 4326), 32632);
@@ -72,6 +74,8 @@ DROP TABLE tmp_4;
 DROP TABLE tmp_5;
 
 DROP TABLE tmp_6;
+
+DROP TABLE comuni;
 
 DROP VIEW vtmp_1;
 
