@@ -49,9 +49,9 @@ ALTER TABLE distributori_ ADD COLUMN cod_istat INTEGER;
 
 UPDATE distributori_ SET cod_istat = (SELECT comuni.COD_ISTAT FROM comuni WHERE ST_Contains(comuni.Geometry, distributori_.Geometry));
 
-CREATE TABLE distributori_prezzi_analisi (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE, carb TEXT, prezzo DOUBLE, lat DOUBLE, lon DOUBLE);
+CREATE TABLE distributori_prezzi_analisi (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE, carb TEXT, prezzo DOUBLE, cod_istat INTEGER);
 
-INSERT INTO distributori_prezzi_analisi (id_d, data, day, carb, prezzo, lat, lon) SELECT a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.lat AS lat, b.lon AS lon FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
+INSERT INTO distributori_prezzi_analisi (id_d, data, day, carb, prezzo, lat, lon) SELECT a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.cod_istat AS cod_istat FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
 
 CREATE INDEX index_prezzo ON distributori_prezzi_analisi (prezzo);
 
