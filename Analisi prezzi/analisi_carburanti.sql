@@ -19,7 +19,7 @@ INSERT INTO distributori_ (id, addr, bnd, comune, lat, lon, name, provincia) SEL
 
 CREATE TABLE prezzi_ (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, dIns datetime, carb TEXT, isSelf INTEGER, prezzo DUOBLE, dScrape INTEGER); 
 
-INSERT INTO prezzi_ (id_d, dIns, carb, isSelf, prezzo, dScrape) SELECT id_d, dIns, carb, isSelf, prezzo, dScrape FROM prezzi;
+INSERT INTO prezzi_ (id_d, dIns, carb, isSelf, prezzo, dScrape) SELECT id_d, dIns, carb, isSelf, prezzo, dScrape FROM prezzi WHERE prezzo > 0;
 
 DROP TABLE tmp_1;
 
@@ -49,19 +49,43 @@ ALTER TABLE distributori_ ADD COLUMN cod_istat INTEGER;
 
 UPDATE distributori_ SET cod_istat = (SELECT comuni.COD_ISTAT FROM comuni WHERE ST_Contains(comuni.Geometry, distributori_.Geometry));
 
-CREATE TABLE distributori_prezzi_analisi (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE, carb TEXT, prezzo DOUBLE, cod_istat INTEGER, lat DOUBLE, lon DOUBLE);
+CREATE TABLE distributori_prezzi_analisi_gasolio (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE, carb TEXT, prezzo DOUBLE, cod_istat INTEGER, lat DOUBLE, lon DOUBLE);
 
-INSERT INTO distributori_prezzi_analisi (id_d, data, day, carb, prezzo, cod_istat, lat, lon) SELECT a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.cod_istat AS cod_istat, b.lat AS lat, b.lon AS lon FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
+INSERT INTO distributori_prezzi_analisi_gasolio (id_d, data, day, carb, prezzo, cod_istat, lat, lon) SELECT a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.cod_istat AS cod_istat, b.lat AS lat, b.lon AS lon FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
 
-CREATE INDEX index_prezzo ON distributori_prezzi_analisi (prezzo);
+CREATE INDEX index_prezzo_gasolio ON distributori_prezzi_analisi_gasolio (prezzo);
 
-CREATE INDEX index_cod_istat ON distributori_prezzi_analisi (cod_istat);
+CREATE INDEX index_cod_istat_gasolio ON distributori_prezzi_analisi_gasolio (cod_istat);
 
-SELECT AddGeometryColumn('distributori_prezzi_analisi', 'Geometry', 32632, 'POINT', 'XY');
+SELECT AddGeometryColumn('distributori_prezzi_analisi_gasolio', 'Geometry', 32632, 'POINT', 'XY');
 
-UPDATE distributori_prezzi_analisi SET Geometry=ST_Transform(MakePoint(lon, lat, 4326), 32632);
+UPDATE distributori_prezzi_analisi_gasolio SET Geometry=ST_Transform(MakePoint(lon, lat, 4326), 32632);
 
-SELECT CreateSpatialIndex('distributori_prezzi_analisi','Geometry');
+SELECT CreateSpatialIndex('distributori_prezzi_analisi_gasolio','Geometry');
+
+CREATE TABLE tmp_7 AS SELECT DISTINCT id_d, CAST(strftime('%Y-%m-%d', dIns) AS TEXT) AS data, CAST(julianday(strftime('%Y-%m-%d', dIns)) AS DOUBLE) AS day, carb, CAST(min(prezzo) AS DOUBLE) AS prezzo FROM prezzi_, vtmp_1 WHERE carb = 'Benzina' AND julianday(dIns) BETWEEN vtmp_1.start_data AND vtmp_1.stop_analisi GROUP BY id_d, data, carb ORDER BY id_d, data;
+
+CREATE TABLE tmp_8 AS SELECT a.id AS id, a.id_d AS id_d, a.data AS data, a.day AS day, b.carb AS carb, b.prezzo AS prezzo FROM tmp_2 AS a LEFT JOIN tmp_7 AS b USING (id_d, day);
+
+CREATE TABLE tmp_9 AS SELECT a.id AS id_corrente, CAST(max(b.id) AS INTEGER) AS id_precedente FROM tmp_8 AS a, tmp_8 AS b WHERE a.id_d = b.id_d AND a.day > b.day AND b.prezzo IS NOT NULL GROUP BY a.id;
+
+CREATE TABLE tmp_10 AS SELECT a.*, b.carb AS carburante_precedente, b.prezzo AS prezzo_precedente FROM tmp_8 AS a, tmp_8 AS b, tmp_9 AS c WHERE a.id = c.id_corrente AND c.id_precedente = b.id;
+
+UPDATE tmp_10 SET carb = carburante_precedente, prezzo = prezzo_precedente WHERE prezzo IS NULL AND carb IS NULL;
+
+CREATE TABLE distributori_prezzi_analisi_benzina (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE, carb TEXT, prezzo DOUBLE, cod_istat INTEGER, lat DOUBLE, lon DOUBLE);
+
+INSERT INTO distributori_prezzi_analisi_benzina (id_d, data, day, carb, prezzo, cod_istat, lat, lon) SELECT a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.cod_istat AS cod_istat, b.lat AS lat, b.lon AS lon FROM tmp_10 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
+
+CREATE INDEX index_prezzo_benzina ON distributori_prezzi_analisi_benzina (prezzo);
+
+CREATE INDEX index_cod_istat_benzina ON distributori_prezzi_analisi_benzina (cod_istat);
+
+SELECT AddGeometryColumn('distributori_prezzi_analisi_benzina', 'Geometry', 32632, 'POINT', 'XY');
+
+UPDATE distributori_prezzi_analisi_benzina SET Geometry=ST_Transform(MakePoint(lon, lat, 4326), 32632);
+
+SELECT CreateSpatialIndex('distributori_prezzi_analisi_benzina','Geometry');
 
 DROP TABLE tmp_1;
 
@@ -75,9 +99,13 @@ DROP TABLE tmp_5;
 
 DROP TABLE tmp_6;
 
-SELECT DiscardGeometryColumn ('comuni', 'Geometry');
+DROP TABLE tmp_7;
 
-DROP TABLE comuni;
+DROP TABLE tmp_8;
+
+DROP TABLE tmp_9;
+
+DROP TABLE tmp_10;
 
 DROP VIEW vtmp_1;
 
