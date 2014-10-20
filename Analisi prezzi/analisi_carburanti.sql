@@ -4,7 +4,7 @@
 - carica in MEMORY-DB spatialite.sqlite
 - connetti il DB scrape.sqlite
 - importa lo shape file dei confini comunali ISTAT con il nome "comuni" l'SRID corrispondente dovrebbe essere 32632
-- importa la tabella csv periodo analisi
+- importa la tabella csv periodo analisi (il periodo analisi deve partire 1 giorno prima del primo giorno monitorato es. 31 agosto - 30 settembre per analizzare il mese di settembre)
 */
 
 CREATE TABLE tmp_1 AS SELECT * FROM distributori;
@@ -25,7 +25,7 @@ DROP TABLE tmp_1;
 
 CREATE TABLE tmp_1 AS SELECT b.data, CAST(julianday(b.data) AS DOUBLE) AS day, a.id FROM distributori_ AS a, periodo_analisi AS b ORDER BY a.id, b.data;
 
-CREATE VIEW vtmp_1 AS SELECT CAST(julianday(min(periodo_analisi.data)) AS DOUBLE) - 1 AS start_analisi, CAST(julianday(max(periodo_analisi.data)) AS DOUBLE) AS stop_analisi, CAST(julianday(min(periodo_analisi.data)) AS DOUBLE) - 30 AS start_data FROM periodo_analisi;
+CREATE VIEW vtmp_1 AS SELECT CAST(julianday(min(periodo_analisi.data)) AS DOUBLE) AS start_analisi, CAST(julianday(max(periodo_analisi.data)) AS DOUBLE) AS stop_analisi, CAST(julianday(min(periodo_analisi.data)) AS DOUBLE) - 30 AS start_data FROM periodo_analisi;
 
 CREATE TABLE tmp_2 (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE);
 
