@@ -47,11 +47,17 @@ UPDATE distributori_ SET Geometry = ST_Transform(MakePoint(lon, lat, 4326), 3263
 
 ALTER TABLE distributori_ ADD COLUMN cod_istat INTEGER;
 
-UPDATE distributori_ SET cod_istat = (SELECT comuni.COD_ISTAT FROM comuni WHERE ST_Contains(comuni.Geometry, distributori_.Geometry));
+ALTER TABLE distributori_ ADD COLUMN cod_pro INTEGER;
 
-CREATE TABLE distributori_prezzi_analisi_gasolio (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE, carb TEXT, prezzo DOUBLE, cod_istat INTEGER, lat DOUBLE, lon DOUBLE);
+ALTER TABLE distributori_ ADD COLUMN cod_reg INTEGER;
 
-INSERT INTO distributori_prezzi_analisi_gasolio (id_d, data, day, carb, prezzo, cod_istat, lat, lon) SELECT a.id_d AS id_d, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.cod_istat AS cod_istat, b.lat AS lat, b.lon AS lon FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
+UPDATE distributori_ SET cod_istat = (SELECT comuni.COD_ISTAT FROM comuni WHERE ST_Contains(comuni.Geometry, distributori_.Geometry)), 
+
+UPDATE distributori_ SET cod_pro = (SELECT comuni.COD_PRO FROM comuni WHERE comuni.COD_ISTAT = distributori_.cod_istat), cod_reg = (SELECT comuni.COD_REG FROM comuni WHERE comuni.COD_ISTAT = distributori_.cod_istat);
+
+CREATE TABLE distributori_prezzi_analisi_gasolio (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, bnd TEXT, name TEXT, data TEXT, day DOUBLE, carb TEXT, prezzo DOUBLE, cod_istat INTEGER, lat DOUBLE, lon DOUBLE);
+
+INSERT INTO distributori_prezzi_analisi_gasolio (id_d, bnd, name, data, day, carb, prezzo, cod_istat, lat, lon) SELECT a.id_d AS id_d, b.bnd AS bnd, b.name AS name, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.cod_istat AS cod_istat, b.lat AS lat, b.lon AS lon FROM tmp_6 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
 
 CREATE INDEX index_prezzo_gasolio ON distributori_prezzi_analisi_gasolio (prezzo);
 
