@@ -25,13 +25,13 @@ DROP TABLE tmp_1;
 
 CREATE TABLE tmp_1 AS SELECT b.data, CAST(julianday(b.data) AS DOUBLE) AS day, a.id FROM distributori_ AS a, periodo_analisi AS b ORDER BY a.id, b.data;
 
-CREATE VIEW vtmp_1 AS SELECT CAST(julianday(min(periodo_analisi.data)) AS DOUBLE) AS start_analisi, CAST(julianday(max(periodo_analisi.data)) AS DOUBLE) AS stop_analisi, CAST(julianday(min(periodo_analisi.data)) AS DOUBLE) - 30 AS start_data FROM periodo_analisi;
+CREATE VIEW vtmp_1 AS SELECT CAST(julianday(min(periodo_analisi.data)) AS DOUBLE) AS start_analisi, CAST(julianday(max(periodo_analisi.data)) AS DOUBLE) AS stop_analisi FROM periodo_analisi;
 
 CREATE TABLE tmp_2 (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, data TEXT, day DOUBLE);
 
 INSERT INTO tmp_2 (id_d, data, day) SELECT id, data, day FROM tmp_1;
 
-CREATE TABLE tmp_3 AS SELECT DISTINCT id_d, CAST(strftime('%Y-%m-%d', dIns) AS TEXT) AS data, CAST(julianday(strftime('%Y-%m-%d', dIns)) AS DOUBLE) AS day, carb, CAST(min(prezzo) AS DOUBLE) AS prezzo FROM prezzi_, vtmp_1 WHERE carb = 'Gasolio' AND julianday(dIns) BETWEEN vtmp_1.start_data AND vtmp_1.stop_analisi GROUP BY id_d, data, carb ORDER BY id_d, data;
+CREATE TABLE tmp_3 AS SELECT DISTINCT id_d, CAST(strftime('%Y-%m-%d', dIns) AS TEXT) AS data, CAST(julianday(strftime('%Y-%m-%d', dIns)) AS DOUBLE) AS day, carb, CAST(min(prezzo) AS DOUBLE) AS prezzo FROM prezzi_, vtmp_1 WHERE carb = 'Gasolio' AND julianday(dIns) BETWEEN vtmp_1.start_analisi AND vtmp_1.stop_analisi GROUP BY id_d, data, carb ORDER BY id_d, data;
 
 CREATE TABLE tmp_4 AS SELECT a.id AS id, a.id_d AS id_d, a.data AS data, a.day AS day, b.carb AS carb, b.prezzo AS prezzo FROM tmp_2 AS a LEFT JOIN tmp_3 AS b USING (id_d, day);
 
