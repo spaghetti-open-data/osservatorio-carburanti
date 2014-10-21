@@ -61,7 +61,13 @@ INSERT INTO distributori_prezzi_analisi_gasolio (id_d, bnd, name, data, day, car
 
 CREATE INDEX index_prezzo_gasolio ON distributori_prezzi_analisi_gasolio (prezzo);
 
+CREATE INDEX index_cod_pro_gasolio ON distributori_prezzi_analisi_gasolio (cod_pro);
+
+CREATE INDEX index_cod_reg_gasolio ON distributori_prezzi_analisi_gasolio (cod_reg);
+
 CREATE INDEX index_cod_istat_gasolio ON distributori_prezzi_analisi_gasolio (cod_istat);
+
+CREATE INDEX index_data_gasolio ON distributori_prezzi_analisi_gasolio (data);
 
 SELECT AddGeometryColumn('distributori_prezzi_analisi_gasolio', 'Geometry', 32632, 'POINT', 'XY');
 
@@ -85,7 +91,13 @@ INSERT INTO distributori_prezzi_analisi_benzina (id_d, data, day, carb, prezzo, 
 
 CREATE INDEX index_prezzo_benzina ON distributori_prezzi_analisi_benzina (prezzo);
 
+CREATE INDEX index_cod_pro_benzina ON distributori_prezzi_analisi_benzina (cod_pro);
+
+CREATE INDEX index_cod_reg_benzina ON distributori_prezzi_analisi_benzina (cod_reg);
+
 CREATE INDEX index_cod_istat_benzina ON distributori_prezzi_analisi_benzina (cod_istat);
+
+CREATE INDEX index_data_benzina ON distributori_prezzi_analisi_benzina (data);
 
 SELECT AddGeometryColumn('distributori_prezzi_analisi_benzina', 'Geometry', 32632, 'POINT', 'XY');
 
