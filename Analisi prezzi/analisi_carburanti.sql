@@ -91,10 +91,6 @@ CREATE TABLE distributori_prezzi_analisi_benzina (id INTEGER NOT NULL PRIMARY KE
 
 INSERT INTO distributori_prezzi_analisi_benzina (id_d, bnd, name, data, day, carb, prezzo, cod_istat, cod_pro, cod_reg, lat, lon) SELECT a.id_d AS id_d, b.bnd AS bnd, b.name AS name, a.data AS data, a.day AS day, a.carb AS carb, a.prezzo AS prezzo, b.cod_istat AS cod_istat, b.cod_pro AS cod_pro, b.cod_reg AS cod_reg, b.lat AS lat, b.lon AS lon FROM tmp_10 AS a LEFT JOIN distributori_ AS b ON (a.id_d = b.id);
 
-
-
-
-
 CREATE INDEX index_prezzo_benzina ON distributori_prezzi_analisi_benzina (prezzo);
 
 CREATE INDEX index_cod_pro_benzina ON distributori_prezzi_analisi_benzina (cod_pro);
