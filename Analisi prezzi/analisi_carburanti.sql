@@ -133,7 +133,40 @@ VACUUM;
 /* 
 - disconnettere scrape
 - salvare il DB
+- inserisco limiti amministrativi provinciali e regionali da ISTAT
 */
+
+CREATE VIEW province_gasolio_day AS SELECT avg(prezzo), cod_pro FROM distributori_prezzi_analisi_gasolio WHERE data = '2014-09-01' GROUP BY cod_pro;
+
+CREATE VIEW regioni_gasolio_day AS SELECT avg(prezzo), cod_reg FROM distributori_prezzi_analisi_gasolio WHERE data = '2014-09-01' GROUP BY cod_reg;
+
+CREATE VIEW comuni_gasolio_day AS SELECT avg(prezzo), cod_istat FROM distributori_prezzi_analisi_gasolio WHERE data = '2014-09-01' GROUP BY cod_istat;
+
+CREATE VIEW "province_gasolio_day_spatial" AS
+SELECT "a"."ROWID" AS "ROWID", "a"."PK_UID" AS "PK_UID",
+    "a"."COD_PRO" AS "COD_PRO", "a"."Geometry" AS "Geometry",
+    "b"."avg(prezzo)" AS "avg(prezzo)"
+FROM "province" AS "a"
+JOIN "province_gasolio_day" AS "b" ON ("a"."COD_PRO" = "b"."cod_pro");
+
+CREATE VIEW "regioni_gasolio_day_spatial" AS
+SELECT "a"."ROWID" AS "ROWID", "a"."PK_UID" AS "PK_UID",
+    "a"."COD_REG" AS "COD_REG", "a"."Geometry" AS "Geometry",
+    "b"."avg(prezzo)" AS "avg(prezzo)"
+FROM "regioni" AS "a"
+JOIN "regioni_gasolio_day" AS "b" ON ("a"."COD_REG" = "b"."cod_reg");
+
+CREATE VIEW "comuni_gasolio_day_spatial" AS
+SELECT "a"."ROWID" AS "ROWID", "a"."PK_UID" AS "PK_UID",
+    "a"."COD_ISTAT" AS "COD_ISTAT", "a"."Geometry" AS "Geometry",
+    "b"."avg(prezzo)" AS "avg(prezzo)"
+FROM "comuni" AS "a"
+JOIN "comuni_gasolio_day" AS "b" ON ("a"."COD_ISTAT" = "b"."cod_istat");
+
+INSERT INTO "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") VALUES ( 'comuni_gasolio_day_spatial','geometry','rowid','comuni','geometry',1 );
+INSERT INTO "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") VALUES ( 'province_gasolio_day_spatial','geometry','rowid','province','geometry',1 );
+INSERT INTO "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") VALUES ( 'regioni_gasolio_day_spatial','geometry','rowid','regioni','geometry',1 );
+
 
 
 
