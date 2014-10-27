@@ -71,6 +71,8 @@ CREATE INDEX index_cod_istat_gasolio ON distributori_prezzi_analisi_gasolio (cod
 
 CREATE INDEX index_data_gasolio ON distributori_prezzi_analisi_gasolio (data);
 
+CREATE INDEX index_data_id_d_gasolio ON distributori_prezzi_analisi_gasolio (id_d);
+
 SELECT AddGeometryColumn('distributori_prezzi_analisi_gasolio', 'Geometry', 32632, 'POINT', 'XY');
 
 UPDATE distributori_prezzi_analisi_gasolio SET Geometry=ST_Transform(MakePoint(lon, lat, 4326), 32632);
@@ -135,10 +137,10 @@ VACUUM;
 /* 
 - disconnettere scrape
 - salvare il DB
-- inserisco limiti amministrativi provinciali e regionali da ISTAT
 - creo un buffer su un distributore da analizzare 
 - carico lo shape del buffer
 - carico lo spatialite in RAM
+- inserisco limiti amministrativi provinciali e regionali da ISTAT
 */
 
 CREATE VIEW province_gasolio_day AS SELECT avg(prezzo), cod_pro FROM distributori_prezzi_analisi_gasolio WHERE data = '2014-09-01' GROUP BY cod_pro;
@@ -147,30 +149,18 @@ CREATE VIEW regioni_gasolio_day AS SELECT avg(prezzo), cod_reg FROM distributori
 
 CREATE VIEW comuni_gasolio_day AS SELECT avg(prezzo), cod_istat FROM distributori_prezzi_analisi_gasolio WHERE data = '2014-09-01' GROUP BY cod_istat;
 
-CREATE VIEW "province_gasolio_day_spatial" AS
-SELECT "a"."ROWID" AS "ROWID", "a"."PK_UID" AS "PK_UID",
-    "a"."COD_PRO" AS "COD_PRO", "a"."Geometry" AS "Geometry",
-    "b"."avg(prezzo)" AS "avg(prezzo)"
-FROM "province" AS "a"
-JOIN "province_gasolio_day" AS "b" ON ("a"."COD_PRO" = "b"."cod_pro");
+CREATE VIEW "province_gasolio_day_spatial" AS SELECT "a"."ROWID" AS "ROWID", "a"."PK_UID" AS "PK_UID", "a"."COD_PRO" AS "COD_PRO", "a"."Geometry" AS "Geometry", "b"."avg(prezzo)" AS "avg(prezzo)" FROM "province" AS "a" JOIN "province_gasolio_day" AS "b" ON ("a"."COD_PRO" = "b"."cod_pro");
 
-CREATE VIEW "regioni_gasolio_day_spatial" AS
-SELECT "a"."ROWID" AS "ROWID", "a"."PK_UID" AS "PK_UID",
-    "a"."COD_REG" AS "COD_REG", "a"."Geometry" AS "Geometry",
-    "b"."avg(prezzo)" AS "avg(prezzo)"
-FROM "regioni" AS "a"
-JOIN "regioni_gasolio_day" AS "b" ON ("a"."COD_REG" = "b"."cod_reg");
+CREATE VIEW "regioni_gasolio_day_spatial" AS SELECT "a"."ROWID" AS "ROWID", "a"."PK_UID" AS "PK_UID", "a"."COD_REG" AS "COD_REG", "a"."Geometry" AS "Geometry", "b"."avg(prezzo)" AS "avg(prezzo)" FROM "regioni" AS "a" JOIN "regioni_gasolio_day" AS "b" ON ("a"."COD_REG" = "b"."cod_reg");
 
-CREATE VIEW "comuni_gasolio_day_spatial" AS
-SELECT "a"."ROWID" AS "ROWID", "a"."PK_UID" AS "PK_UID",
-    "a"."COD_ISTAT" AS "COD_ISTAT", "a"."Geometry" AS "Geometry",
-    "b"."avg(prezzo)" AS "avg(prezzo)"
-FROM "comuni" AS "a"
-JOIN "comuni_gasolio_day" AS "b" ON ("a"."COD_ISTAT" = "b"."cod_istat");
+CREATE VIEW "comuni_gasolio_day_spatial" AS SELECT "a"."ROWID" AS "ROWID", "a"."PK_UID" AS "PK_UID", "a"."COD_ISTAT" AS "COD_ISTAT", "a"."Geometry" AS "Geometry", "b"."avg(prezzo)" AS "avg(prezzo)" FROM "comuni" AS "a" JOIN "comuni_gasolio_day" AS "b" ON ("a"."COD_ISTAT" = "b"."cod_istat");
 
 INSERT INTO "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") VALUES ( 'comuni_gasolio_day_spatial','geometry','rowid','comuni','geometry',1 );
+
 INSERT INTO "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") VALUES ( 'province_gasolio_day_spatial','geometry','rowid','province','geometry',1 );
+
 INSERT INTO "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") VALUES ( 'regioni_gasolio_day_spatial','geometry','rowid','regioni','geometry',1 );
+
 CREATE TABLE tmp_1 AS SELECT distributori_prezzi_analisi_gasolio.* FROM distributori_prezzi_analisi_gasolio, enercoop_300sec WHERE ST_Contains(enercoop_300sec.Geometry, distributori_prezzi_analisi_gasolio.Geometry);
 
 CREATE TABLE tmp_2 AS SELECT DISTINCT id_d, name, bnd FROM tmp_1 ORDER BY id_d;
