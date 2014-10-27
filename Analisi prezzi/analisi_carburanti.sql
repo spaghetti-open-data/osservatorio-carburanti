@@ -101,6 +101,8 @@ CREATE INDEX index_cod_istat_benzina ON distributori_prezzi_analisi_benzina (cod
 
 CREATE INDEX index_data_benzina ON distributori_prezzi_analisi_benzina (data);
 
+CREATE INDEX index_data_id_d_benzina ON distributori_prezzi_analisi_benzina (id_d);
+
 SELECT AddGeometryColumn('distributori_prezzi_analisi_benzina', 'Geometry', 32632, 'POINT', 'XY');
 
 UPDATE distributori_prezzi_analisi_benzina SET Geometry=ST_Transform(MakePoint(lon, lat, 4326), 32632);
@@ -134,6 +136,9 @@ VACUUM;
 - disconnettere scrape
 - salvare il DB
 - inserisco limiti amministrativi provinciali e regionali da ISTAT
+- creo un buffer su un distributore da analizzare 
+- carico lo shape del buffer
+- carico lo spatialite in RAM
 */
 
 CREATE VIEW province_gasolio_day AS SELECT avg(prezzo), cod_pro FROM distributori_prezzi_analisi_gasolio WHERE data = '2014-09-01' GROUP BY cod_pro;
@@ -166,41 +171,58 @@ JOIN "comuni_gasolio_day" AS "b" ON ("a"."COD_ISTAT" = "b"."cod_istat");
 INSERT INTO "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") VALUES ( 'comuni_gasolio_day_spatial','geometry','rowid','comuni','geometry',1 );
 INSERT INTO "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") VALUES ( 'province_gasolio_day_spatial','geometry','rowid','province','geometry',1 );
 INSERT INTO "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") VALUES ( 'regioni_gasolio_day_spatial','geometry','rowid','regioni','geometry',1 );
+CREATE TABLE tmp_1 AS SELECT distributori_prezzi_analisi_gasolio.* FROM distributori_prezzi_analisi_gasolio, enercoop_300sec WHERE ST_Contains(enercoop_300sec.Geometry, distributori_prezzi_analisi_gasolio.Geometry);
 
+CREATE TABLE tmp_2 AS SELECT DISTINCT id_d, name, bnd FROM tmp_1 ORDER BY id_d;
 
+CREATE TABLE tmp_3 AS SELECT * FROM periodo_analisi ORDER BY data ASC;
 
+CREATE INDEX index_data_tmp_3 ON tmp_3 (data);
 
+ALTER TABLE tmp_3 ADD COLUMN TotalErg_5521 DUOBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN TotalErg_5781 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN AgipEni_7137 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN AgipEni_8268 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN Enercoop_10262 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN AgipEni_12395 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN Esso_14677 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN Bentivoglio_17190 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN Gepoil_17870 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN AgipEni_21035 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN ApiIp_21449 DOUBLE;
 
+ALTER TABLE tmp_3 ADD COLUMN Q8_23011 DOUBLE;
 
+UPDATE tmp_3 SET TotalErg_5521 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 5521 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET TotalErg_5781 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 5781 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET AgipEni_7137 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 7137 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET AgipEni_8268 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 8268 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET Enercoop_10262 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 10262 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET AgipEni_12395 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 12395 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET Esso_14677 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 14677 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET Bentivoglio_17190 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 17190 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET Gepoil_17870 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 17870 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET AgipEni_21035 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 21035 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
+UPDATE tmp_3 SET ApiIp_21449 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 21449 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
 
-
-
-
-
-
-
-
-
-
-
-
+UPDATE tmp_3 SET Q8_23011 = (SELECT distributori_prezzi_analisi_gasolio.prezzo FROM distributori_prezzi_analisi_gasolio WHERE distributori_prezzi_analisi_gasolio.id_d = 23011 AND distributori_prezzi_analisi_gasolio.data = tmp_3.data);
