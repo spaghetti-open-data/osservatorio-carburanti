@@ -17,7 +17,7 @@ CREATE TABLE distributori_ (id INTEGER NOT NULL PRIMARY KEY, addr TEXT, bnd TEXT
 
 INSERT INTO distributori_ (id, addr, bnd, comune, lat, lon, name, provincia) SELECT id, addr, bnd, comune, ROUND(lat, 7) AS lat, ROUND(lon, 7) AS lon, name, provincia FROM tmp_1 WHERE lat>30 AND lon > 6 AND lat<48 AND lon<19;
 
-CREATE TABLE prezzi_ (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, dIns datetime, carb TEXT, isSelf INTEGER, prezzo DUOBLE, dScrape INTEGER); 
+CREATE TABLE prezzi_ (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id_d INTEGER, dIns datetime, carb TEXT, isSelf INTEGER, prezzo DOUBLE, dScrape INTEGER); 
 
 INSERT INTO prezzi_ (id_d, dIns, carb, isSelf, prezzo, dScrape) SELECT id_d, dIns, carb, isSelf, prezzo, dScrape FROM prezzi WHERE prezzo > 0;
 
