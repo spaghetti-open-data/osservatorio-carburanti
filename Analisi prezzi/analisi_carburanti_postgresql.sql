@@ -1,3 +1,4 @@
+/*
 CREATE TABLE "public"."distributori" (
 	"id" integer,
 	"name" text,
@@ -42,9 +43,6 @@ INSERT INTO calendar (data, year, month, day, quarter, day_of_week, day_of_year,
   EXTRACT(WEEK FROM ts)
   FROM generate_series('2012-01-01'::timestamp, '2038-01-01', '1day'::interval) AS t(ts));
 
-
-drop table tmp_0;
-
 drop table tmp_1;
 
 drop table tmp_2;
@@ -57,50 +55,58 @@ drop table tmp_5;
 
 drop table tmp_6;
 
-/*drop table tmp_7;
+drop table tmp_7;
 
 drop table tmp_8;
+
+drop table distributori_;
+
+drop table prezzi_;
 
 drop table tmp_9;
 
 drop table tmp_10;*/
 
-create table tmp_1 as select * from distributori;
+create table tmp1 as select * from distributori;
 
-update tmp_1 set name = replace( name, '"', '' ), addr = replace( addr, '"', '' );
+update tmp1 set name = replace( name, '"', '' ), addr = replace( addr, '"', '' );
 
-update tmp_1 set lat = round(lat, 7), lon = round(lon, 7);
+update tmp1 set lat = round(lat, 7), lon = round(lon, 7);
 
 create table distributori_ (id integer not null primary key, addr text, bnd text, comune text, lat numeric, lon numeric, name text, provincia text);
 
-insert into distributori_ (id, addr, bnd, comune, lat, lon, name, provincia) select id, addr, bnd, comune, round(lat, 7) as lat, round(lon, 7) as lon, name, provincia from tmp_1 where lat>30 and lon > 6 and lat<48 and lon<19;
+insert into distributori_ (id, addr, bnd, comune, lat, lon, name, provincia) select id, addr, bnd, comune, round(lat, 7) as lat, round(lon, 7) as lon, name, provincia from tmp1 where lat>30 and lon > 6 and lat<48 and lon<19;
 
 create table prezzi_ (id serial primary key, id_d integer, dins timestamp, carb text, isself integer, prezzo numeric, dscrape integer); 
 
 insert into prezzi_ (id_d, dins, carb, isself, prezzo, dscrape) select id_d, dins, carb, isself, prezzo, dscrape from prezzi where prezzo > 0;
 
-create table tmp_1 as select b.data, a.id from distributori_ as a, periodo_analisi as b order by a.id, b.data;
+create table tmp2 as select cast('2014-07-01' as timestamp) as start_analisi, now()::timestamp::date as stop_analisi;
 
-create table tmp_0 as select '2014-07-01' as start_analisi, now()::timestamp::date as stop_analisi;
+create table tmp3 as select calendar.data, distributori_.id from distributori_ , calendar, tmp2 where calendar.data >= tmp2.start_analisi and calendar.data <= tmp2.stop_analisi order by distributori_.id, calendar.data;
 
-create table tmp_2 (id serial primary key, id_d integer, data timestamp);
+create table tmp4 (id serial primary key, id_d integer, data timestamp);
 
-insert into tmp_2 (id_d, data) select id, data from tmp_1;
+insert into tmp4 (id_d, data) select id, data from tmp3;
 
-create table tmp_3 as select distinct id_d, dins as dins, carb, min(prezzo) as prezzo from prezzi_, vtmp_1 where carb = 'Gasolio' and dins >= tmp_0.start_analisi and dins <= tmp_0.stop_analisi group by id_d, dins, carb order by id_d, dins;
+create table tmp5 as select distinct id_d, dins as dins, carb, min(prezzo) as prezzo from prezzi_, tmp2 where carb = 'Gasolio' and dins >= tmp2.start_analisi and dins <= tmp2.stop_analisi group by id_d, dins, carb order by id_d, dins;
 
-create table tmp_4 as select tmp_2.id as id, tmp_2.id_d as id_d, tmp_2.data as data, tmp_3.dins as dins, tmp_3.carb as carb, tmp_3.prezzo as prezzo from tmp_2 left outer join  tmp_3 on tmp_2.id_d = tmp_3.id_d and tmp_2.data = tmp_3.dins::timestamp::date;
+create table tmp6 as select tmp4.id as id, tmp4.id_d as id_d, tmp4.data::timestamp::date as data, tmp5.carb as carb, tmp5.prezzo as prezzo from tmp4 left outer join tmp5 on tmp4.id_d = tmp5.id_d and tmp4.data = tmp5.dins::timestamp::date;
 
-create table tmp_5 as select a.id as id_corrente, max(b.id) as id_precedente from tmp_4 as a, tmp_4 as b where a.id_d = b.id_d and a.data > b.data and b.prezzo is not null group by a.id;
+create table tmp7 as select a.id as id_corrente, max(b.id) as id_precedente from tmp6 as a, tmp6 as b where a.id_d = b.id_d and a.data > b.data and b.prezzo is not null group by a.id;
 
-create table tmp_6 as select a.*, b.carb as carburante_precedente, b.prezzo as prezzo_precedente from tmp_4 as a, tmp_4 as b, tmp_5 as c where a.id = c.id_corrente and c.id_precedente = b.id;
+create table tmp8 as select a.*, b.carb as carburante_precedente, b.prezzo as prezzo_precedente from tmp6 as a, tmp6 as b, tmp7 as c where a.id = c.id_corrente and c.id_precedente = b.id;
+
+update tmp8 set carb = carburante_precedente, prezzo = prezzo_precedente where prezzo is null and carb is null;
+
+select addgeometrycolumn('public','distributori_', 'geom', 4326, 'point', 2);
 
 
-update tmp_6 set carb = carburante_precedente, prezzo = prezzo_precedente where prezzo is null and carb is null;
 
-select addgeometrycolumn('distributori_', 'geometry', 32632, 'point', 'xy');
 
-update distributori_ set geometry = st_transform(makepoint(lon, lat, 4326), 32632);
+DA FARE =>
+
+update distributori_ set geom = st_transform(st_makepoint(lon, lat), 4326);
 
 alter table distributori_ add column cod_istat integer;
 
@@ -136,13 +142,17 @@ update distributori_prezzi_analisi_gasolio set geometry=st_transform(makepoint(l
 
 select createspatialindex('distributori_prezzi_analisi_gasolio','geometry');
 
-create table tmp_7 as select distinct id_d, dins, cast(strftime('%y-%m-%d', dins) as text) as data, cast(julianday(strftime('%y-%m-%d', dins)) as numeric) as day, carb, cast(min(prezzo) as numeric) as prezzo from prezzi_, vtmp_1 where carb = 'benzina' and julianday(dins) between vtmp_1.start_analisi and vtmp_1.stop_analisi group by id_d, data, carb order by id_d, data;
 
-create table tmp_8 as select a.id as id, a.id_d as id_d, a.data as data, a.day as day, b.dins as dins, b.carb as carb, b.prezzo as prezzo from tmp_2 as a left join tmp_7 as b using (id_d, day);
 
-create table tmp_9 as select a.id as id_corrente, cast(max(b.id) as integer) as id_precedente from tmp_8 as a, tmp_8 as b where a.id_d = b.id_d and a.day > b.day and b.prezzo is not null group by a.id;
 
-create table tmp_10 as select a.*, b.carb as carburante_precedente, b.prezzo as prezzo_precedente from tmp_8 as a, tmp_8 as b, tmp_9 as c where a.id = c.id_corrente and c.id_precedente = b.id;
+
+create table tmp11 as select distinct id_d, dins, cast(strftime('%y-%m-%d', dins) as text) as data, cast(julianday(strftime('%y-%m-%d', dins)) as numeric) as day, carb, cast(min(prezzo) as numeric) as prezzo from prezzi_, vtmp_1 where carb = 'benzina' and julianday(dins) between vtmp_1.start_analisi and vtmp_1.stop_analisi group by id_d, data, carb order by id_d, data;
+
+create table tmp12 as select a.id as id, a.id_d as id_d, a.data as data, a.day as day, b.dins as dins, b.carb as carb, b.prezzo as prezzo from tmp_2 as a left join tmp_7 as b using (id_d, day);
+
+create table tmp13 as select a.id as id_corrente, cast(max(b.id) as integer) as id_precedente from tmp_8 as a, tmp_8 as b where a.id_d = b.id_d and a.day > b.day and b.prezzo is not null group by a.id;
+
+create table tmp14 as select a.*, b.carb as carburante_precedente, b.prezzo as prezzo_precedente from tmp_8 as a, tmp_8 as b, tmp_9 as c where a.id = c.id_corrente and c.id_precedente = b.id;
 
 update tmp_10 set carb = carburante_precedente, prezzo = prezzo_precedente where prezzo is null and carb is null;
 
@@ -168,16 +178,6 @@ update distributori_prezzi_analisi_benzina set geometry=st_transform(makepoint(l
 
 select createspatialindex('distributori_prezzi_analisi_benzina','geometry');
 
-vacuum;
-/* 
-- disconnettere scrape
-- salvare il db
-- creo un buffer su un distributore da analizzare 
-- carico lo shape del buffer
-- carico lo spatialite in ram
-- inserisco limiti amministrativi provinciali e regionali da istat
-*/
-
 create view province_gasolio_day as select avg(prezzo), cod_pro from distributori_prezzi_analisi_gasolio where data = '2014-09-01' group by cod_pro;
 
 create view regioni_gasolio_day as select avg(prezzo), cod_reg from distributori_prezzi_analisi_gasolio where data = '2014-09-01' group by cod_reg;
@@ -195,60 +195,3 @@ insert into "views_geometry_columns"("view_name","view_geometry","view_rowid","f
 insert into "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") values ( 'province_gasolio_day_spatial','geometry','rowid','province','geometry',1 );
 
 insert into "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") values ( 'regioni_gasolio_day_spatial','geometry','rowid','regioni','geometry',1 );
-
-create table tmp_1 as select distributori_prezzi_analisi_gasolio.* from distributori_prezzi_analisi_gasolio, enercoop_300sec where st_contains(enercoop_300sec.geometry, distributori_prezzi_analisi_gasolio.geometry);
-
-create table tmp_2 as select distinct id_d, name, bnd from tmp_1 order by id_d;
-
-create table tmp_3 as select * from periodo_analisi order by data asc;
-
-create index index_data_tmp_3 on tmp_3 (data);
-
-alter table tmp_3 add column totalerg_5521 duoble;
-
-alter table tmp_3 add column totalerg_5781 numeric;
-
-alter table tmp_3 add column agipeni_7137 numeric;
-
-alter table tmp_3 add column agipeni_8268 numeric;
-
-alter table tmp_3 add column enercoop_10262 numeric;
-
-alter table tmp_3 add column agipeni_12395 numeric;
-
-alter table tmp_3 add column esso_14677 numeric;
-
-alter table tmp_3 add column bentivoglio_17190 numeric;
-
-alter table tmp_3 add column gepoil_17870 numeric;
-
-alter table tmp_3 add column agipeni_21035 numeric;
-
-alter table tmp_3 add column apiip_21449 numeric;
-
-alter table tmp_3 add column q8_23011 numeric;
-
-update tmp_3 set totalerg_5521 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 5521 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set totalerg_5781 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 5781 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set agipeni_7137 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 7137 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set agipeni_8268 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 8268 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set enercoop_10262 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 10262 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set agipeni_12395 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 12395 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set esso_14677 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 14677 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set bentivoglio_17190 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 17190 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set gepoil_17870 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 17870 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set agipeni_21035 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 21035 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set apiip_21449 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 21449 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
-update tmp_3 set q8_23011 = (select distributori_prezzi_analisi_gasolio.prezzo from distributori_prezzi_analisi_gasolio where distributori_prezzi_analisi_gasolio.id_d = 23011 and distributori_prezzi_analisi_gasolio.data = tmp_3.data);
-
