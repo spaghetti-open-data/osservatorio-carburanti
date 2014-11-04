@@ -17,9 +17,53 @@ CREATE TABLE "public"."prezzi" (
   "prezzo" numeric,
   "dscrape" bigint);
 
-CREATE TABLE "public"."periodo_analisi" (
-"data" timestamp);
+CREATE TABLE calendar (
+  data DATE NOT NULL PRIMARY KEY,
+  year SMALLINT NOT NULL, -- 2012 to 2038
+  month SMALLINT NOT NULL, -- 1 to 12
+  day SMALLINT NOT NULL, -- 1 to 31
+  quarter SMALLINT NOT NULL, -- 1 to 4
+  day_of_week SMALLINT NOT NULL, -- 0 () to 6 ()
+  day_of_year SMALLINT NOT NULL, -- 1 to 366
+  week_of_year SMALLINT NOT NULL, -- 1 to 53
+  CONSTRAINT con_month CHECK (month >= 1 AND month <= 31),
+  CONSTRAINT con_day_of_year CHECK (day_of_year >= 1 AND day_of_year <= 366), -- 366 allows for leap years
+  CONSTRAINT con_week_of_year CHECK (week_of_year >= 1 AND week_of_year <= 53)
+);
 
+INSERT INTO calendar (data, year, month, day, quarter, day_of_week, day_of_year, week_of_year)
+(SELECT ts, 
+  EXTRACT(YEAR FROM ts),
+  EXTRACT(MONTH FROM ts),
+  EXTRACT(DAY FROM ts),
+  EXTRACT(QUARTER FROM ts),
+  EXTRACT(DOW FROM ts),
+  EXTRACT(DOY FROM ts),
+  EXTRACT(WEEK FROM ts)
+  FROM generate_series('2012-01-01'::timestamp, '2038-01-01', '1day'::interval) AS t(ts));
+
+
+drop table tmp_0;
+
+drop table tmp_1;
+
+drop table tmp_2;
+
+drop table tmp_3;
+
+drop table tmp_4;
+
+drop table tmp_5;
+
+drop table tmp_6;
+
+/*drop table tmp_7;
+
+drop table tmp_8;
+
+drop table tmp_9;
+
+drop table tmp_10;*/
 
 create table tmp_1 as select * from distributori;
 
@@ -35,28 +79,22 @@ create table prezzi_ (id serial primary key, id_d integer, dins timestamp, carb 
 
 insert into prezzi_ (id_d, dins, carb, isself, prezzo, dscrape) select id_d, dins, carb, isself, prezzo, dscrape from prezzi where prezzo > 0;
 
-drop table tmp_1;
-
 create table tmp_1 as select b.data, a.id from distributori_ as a, periodo_analisi as b order by a.id, b.data;
 
-create view vtmp_1 as select min(periodo_analisi.data) as start_analisi, max(periodo_analisi.data) as stop_analisi from periodo_analisi;
+create table tmp_0 as select '2014-07-01' as start_analisi, now()::timestamp::date as stop_analisi;
 
-create table tmp_2 (id serial primary key, id_d integer, data text);
+create table tmp_2 (id serial primary key, id_d integer, data timestamp);
 
 insert into tmp_2 (id_d, data) select id, data from tmp_1;
 
-create table tmp_3 as select distinct id_d, dins as dins, carb, cast(min(prezzo) as numeric) as prezzo from prezzi_, vtmp_1 where carb = 'gasolio' and dins >= vtmp_1.start_analisi and dins <= vtmp_1.stop_analisi group by id_d, dins, carb order by id_d, dins;
+create table tmp_3 as select distinct id_d, dins as dins, carb, min(prezzo) as prezzo from prezzi_, vtmp_1 where carb = 'Gasolio' and dins >= tmp_0.start_analisi and dins <= tmp_0.stop_analisi group by id_d, dins, carb order by id_d, dins;
 
+create table tmp_4 as select tmp_2.id as id, tmp_2.id_d as id_d, tmp_2.data as data, tmp_3.dins as dins, tmp_3.carb as carb, tmp_3.prezzo as prezzo from tmp_2 left outer join  tmp_3 on tmp_2.id_d = tmp_3.id_d and tmp_2.data = tmp_3.dins::timestamp::date;
 
-
-
-
-
-create table tmp_4 as select a.id as id, a.id_d as id_d, a.data, b.dins as data, b.carb as carb, b.prezzo as prezzo from tmp_2 as a left join tmp_3 as b using (id_d, data);
-
-create table tmp_5 as select a.id as id_corrente, cast(max(b.id) as integer) as id_precedente from tmp_4 as a, tmp_4 as b where a.id_d = b.id_d and a.day > b.day and b.prezzo is not null group by a.id;
+create table tmp_5 as select a.id as id_corrente, max(b.id) as id_precedente from tmp_4 as a, tmp_4 as b where a.id_d = b.id_d and a.data > b.data and b.prezzo is not null group by a.id;
 
 create table tmp_6 as select a.*, b.carb as carburante_precedente, b.prezzo as prezzo_precedente from tmp_4 as a, tmp_4 as b, tmp_5 as c where a.id = c.id_corrente and c.id_precedente = b.id;
+
 
 update tmp_6 set carb = carburante_precedente, prezzo = prezzo_precedente where prezzo is null and carb is null;
 
@@ -129,28 +167,6 @@ select addgeometrycolumn('distributori_prezzi_analisi_benzina', 'geometry', 3263
 update distributori_prezzi_analisi_benzina set geometry=st_transform(makepoint(lon, lat, 4326), 32632);
 
 select createspatialindex('distributori_prezzi_analisi_benzina','geometry');
-
-drop table tmp_1;
-
-drop table tmp_2;
-
-drop table tmp_3;
-
-drop table tmp_4;
-
-drop table tmp_5;
-
-drop table tmp_6;
-
-drop table tmp_7;
-
-drop table tmp_8;
-
-drop table tmp_9;
-
-drop table tmp_10;
-
-drop view vtmp_1;
 
 vacuum;
 /* 
