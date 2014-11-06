@@ -1,4 +1,13 @@
 /*
+ssh -L 8080:ubuntuServ1204E.cloudapp.net:5432 virtualadmin@ubuntuServ1204E.cloudapp.net
+
+shp2pgsql -W "latin1" -s 32632 -c -g geom -I Com2011_WGS84.shp public.comuni | psql -d develope -U postgres 
+
+shp2pgsql -W "latin1" -s 32632 -c -g geom -I Com2011_WGS84.shp public.province | psql -d develope -U postgres 
+
+shp2pgsql -W "latin1" -s 32632 -c -g geom -I Com2011_WGS84.shp public.regioni | psql -d develope -U postgres 
+
+
 CREATE TABLE "public"."distributori" (
 	"id" integer,
 	"name" text,
@@ -99,14 +108,9 @@ create table tmp8 as select a.*, b.carb as carburante_precedente, b.prezzo as pr
 
 update tmp8 set carb = carburante_precedente, prezzo = prezzo_precedente where prezzo is null and carb is null;
 
-select addgeometrycolumn('public','distributori_', 'geom', 4326, 'point', 2);
+select addgeometrycolumn('public','distributori_', 'geom', 32632, 'point', 2);
 
-
-
-
-DA FARE =>
-
-update distributori_ set geom = st_transform(st_makepoint(lon, lat), 4326);
+update distributori_ set geom = st_transform(st_setsrid(st_makepoint(lon, lat), 4326),32632);
 
 alter table distributori_ add column cod_istat integer;
 
@@ -114,15 +118,15 @@ alter table distributori_ add column cod_pro integer;
 
 alter table distributori_ add column cod_reg integer;
 
-update distributori_ set cod_istat = (select comuni.cod_istat from comuni where st_contains(comuni.geometry, distributori_.geometry));
+update distributori_ set cod_istat = (select comuni.cod_istat from comuni where st_contains(comuni.geom, distributori_.geom));
 
 update distributori_ set cod_pro = (select comuni.cod_pro from comuni where comuni.cod_istat = distributori_.cod_istat);
 
 update distributori_ set cod_reg = (select comuni.cod_reg from comuni where comuni.cod_istat = distributori_.cod_istat);
 
-create table distributori_prezzi_analisi_gasolio (id integer not null primary key serial, id_d integer, dins text, bnd text, name text, data text, day numeric, carb text, prezzo numeric, cod_istat integer, cod_pro integer, cod_reg integer, lat numeric, lon numeric);
+create table distributori_prezzi_analisi_gasolio (id serial primary key, id_d integer, bnd text, name text, data text, carb text, prezzo numeric, cod_istat integer, cod_pro integer, cod_reg integer, lat numeric, lon numeric);
 
-insert into distributori_prezzi_analisi_gasolio (id_d, bnd, name, dins, data, day, carb, prezzo, cod_istat, cod_pro, cod_reg, lat, lon) select a.id_d as id_d, b.bnd as bnd, b.name as name, a.dins as dins, a.data as data, a.day as day, a.carb as carb, a.prezzo as prezzo, b.cod_istat as cod_istat, b.cod_pro as cod_pro, b.cod_reg as cod_reg, b.lat as lat, b.lon as lon from tmp_6 as a left join distributori_ as b on (a.id_d = b.id);
+insert into distributori_prezzi_analisi_gasolio (id_d, bnd, name, data, carb, prezzo, cod_istat, cod_pro, cod_reg, lat, lon) select a.id_d as id_d, b.bnd as bnd, b.name as name, a.data as data, a.carb as carb, a.prezzo as prezzo, b.cod_istat as cod_istat, b.cod_pro as cod_pro, b.cod_reg as cod_reg, b.lat as lat, b.lon as lon from tmp6 as a left join distributori_ as b on (a.id_d = b.id);
 
 create index index_prezzo_gasolio on distributori_prezzi_analisi_gasolio (prezzo);
 
@@ -136,15 +140,14 @@ create index index_data_gasolio on distributori_prezzi_analisi_gasolio (data);
 
 create index index_data_id_d_gasolio on distributori_prezzi_analisi_gasolio (id_d);
 
-select addgeometrycolumn('distributori_prezzi_analisi_gasolio', 'geometry', 32632, 'point', 'xy');
+select addgeometrycolumn('public', 'distributori_prezzi_analisi_gasolio', 'geom', 32632, 'point', 2);
 
-update distributori_prezzi_analisi_gasolio set geometry=st_transform(makepoint(lon, lat, 4326), 32632);
+update distributori_prezzi_analisi_gasolio set geom=ST_Transform(ST_SetSRID(ST_MakePoint(lon, lat), 4326),32632);
 
-select createspatialindex('distributori_prezzi_analisi_gasolio','geometry');
-
-
+create index distributori_prezzi_analisi_gasolio_gix on distributori_prezzi_analisi_gasolio using gist (geom);
 
 
+select createspatialindex('distributori_prezzi_analisi_gasolio','geom');
 
 create table tmp11 as select distinct id_d, dins, cast(strftime('%y-%m-%d', dins) as text) as data, cast(julianday(strftime('%y-%m-%d', dins)) as numeric) as day, carb, cast(min(prezzo) as numeric) as prezzo from prezzi_, vtmp_1 where carb = 'benzina' and julianday(dins) between vtmp_1.start_analisi and vtmp_1.stop_analisi group by id_d, data, carb order by id_d, data;
 
@@ -177,6 +180,16 @@ select addgeometrycolumn('distributori_prezzi_analisi_benzina', 'geometry', 3263
 update distributori_prezzi_analisi_benzina set geometry=st_transform(makepoint(lon, lat, 4326), 32632);
 
 select createspatialindex('distributori_prezzi_analisi_benzina','geometry');
+
+
+
+
+
+
+
+
+
+
 
 create view province_gasolio_day as select avg(prezzo), cod_pro from distributori_prezzi_analisi_gasolio where data = '2014-09-01' group by cod_pro;
 
