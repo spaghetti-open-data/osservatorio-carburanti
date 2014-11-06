@@ -58,30 +58,55 @@ INSERT INTO calendar (data, year, month, day, quarter, day_of_week, day_of_year,
   EXTRACT(DOY FROM ts),
   EXTRACT(WEEK FROM ts)
   FROM generate_series('2012-01-01'::timestamp, '2038-01-01', '1day'::interval) AS t(ts));
+*/
 
-drop table tmp_1;
+drop table if exists tmp1 cascade;
 
-drop table tmp_2;
+drop table if exists tmp2 cascade;
 
-drop table tmp_3;
+drop table if exists tmp3 cascade;
 
-drop table tmp_4;
+drop table if exists tmp4 cascade;
 
-drop table tmp_5;
+drop table if exists tmp5 cascade;
 
-drop table tmp_6;
+drop table if exists tmp6 cascade;
 
-drop table tmp_7;
+drop table if exists tmp7 cascade;
 
-drop table tmp_8;
+drop table if exists tmp8 cascade;
 
-drop table distributori_;
+drop table if exists tmp9 cascade;
 
-drop table prezzi_;
+drop table if exists tmp10 cascade;
 
-drop table tmp_9;
+drop table if exists tmp11 cascade;
 
-drop table tmp_10;*/
+drop table if exists tmp12 cascade;
+
+drop table if exists tmp13 cascade;
+
+drop table if exists tmp14 cascade;
+
+drop table if exists distributori_ cascade;
+
+drop table if exists prezzi_ cascade;
+
+drop table if exists distributori_prezzi_analisi_gasolio cascade;
+
+drop table if exists distributori_prezzi_analisi_benzina cascade;
+
+drop view if exists comuni_gasolio_yesterday cascade;
+
+drop view if exists province_gasolio_yesterday cascade;
+
+drop view if exists regioni_gasolio_yesterday cascade;
+
+drop view if exists comuni_benzina_yesterday cascade;
+
+drop view if exists province_benzina_yesterday cascade;
+
+drop view if exists regioni_benzina_yesterday cascade;
 
 create table tmp1 as select * from distributori;
 
@@ -185,23 +210,32 @@ update distributori_prezzi_analisi_benzina set geom=st_transform(st_setsrid(st_m
 
 create index distributori_prezzi_analisi_benzina_gix on distributori_prezzi_analisi_benzina using gist (geom);
 
+create view province_gasolio_yesterday as select avg(prezzo) as prezzo_medio, cod_pro from distributori_prezzi_analisi_gasolio where data = cast((NOW()::timestamp::date-1) as timestamp) group by cod_pro;
+
+create view regioni_gasolio_yesterday as select avg(prezzo) as prezzo_medio, cod_reg from distributori_prezzi_analisi_gasolio where data = cast((NOW()::timestamp::date-1) as timestamp)  group by cod_reg;
+
+create view comuni_gasolio_yesterday as select avg(prezzo) as prezzo_medio, cod_istat from distributori_prezzi_analisi_gasolio where data = cast((NOW()::timestamp::date-1) as timestamp)  group by cod_istat;
+
+
+/* da fare
+create view province_gasolio_yesterday_spatial as select a.rowid as rowid, a.pk_uid as pk_uid, a.cod_pro as cod_pro, a.geometry as geometry, b.avg(prezzo) as avg(prezzo) from province as a join province_gasolio_yesterday as b on (a.cod_pro = b.cod_pro);
+
+create view regioni_gasolio_yesterday_spatial as select a.rowid as rowid, a.pk_uid as pk_uid, a.cod_reg as cod_reg, a.geometry as geometry, b.avg(prezzo) as avg(prezzo) from regioni as a join regioni_gasolio_yesterday as b on (a.cod_reg = b.cod_reg);
+
+create view comuni_gasolio_yesterday_spatial as select a.rowid as rowid, a.pk_uid as pk_uid, a.cod_istat as cod_istat, a.geometry as geometry, b.avg(prezzo) as avg(prezzo) from comuni as a join comuni_gasolio_yesterday as b on (a.cod_istat = b.cod_istat);*/
+
+
+create view province_benzina_yesterday as select avg(prezzo) as prezzo_medio, cod_pro from distributori_prezzi_analisi_benzina where data = cast((NOW()::timestamp::date-1) as timestamp) group by cod_pro;
+
+create view regioni_benzina_yesterday as select avg(prezzo) as prezzo_medio, cod_reg from distributori_prezzi_analisi_benzina where data = cast((NOW()::timestamp::date-1) as timestamp)  group by cod_reg;
+
+create view comuni_benzina_yesterday as select avg(prezzo) as prezzo_medio, cod_istat from distributori_prezzi_analisi_benzina where data = cast((NOW()::timestamp::date-1) as timestamp)  group by cod_istat;
 
 
 
-create view province_gasolio_yesterday as select avg(prezzo), cod_pro from distributori_prezzi_analisi_gasolio where data = cast((NOW()::timestamp::date-1) as timestamp) group by cod_pro;
+/* da fare 
+create view province_benzina_yesterday_spatial as select a.rowid as rowid, a.pk_uid as pk_uid, a.cod_pro as cod_pro, a.geom as geom, b.avg as avg from province as a join province_benzina_yesterday as b on (a.cod_pro = b.cod_pro);
 
-create view regioni_gasolio_day as select avg(prezzo), cod_reg from distributori_prezzi_analisi_gasolio where data = '2014-09-01' group by cod_reg;
+create view regioni_benzina_yesterday_spatial as select a.rowid as rowid, a.pk_uid as pk_uid, a.cod_reg as cod_reg, a.geom as geom, b.avg(prezzo) as avg(prezzo) from regioni as a join regioni_benzina_yesterday as b on (a.cod_reg = b.cod_reg);
 
-create view comuni_gasolio_day as select avg(prezzo), cod_istat from distributori_prezzi_analisi_gasolio where data = '2014-09-01' group by cod_istat;
-
-create view "province_gasolio_day_spatial" as select "a"."rowid" as "rowid", "a"."pk_uid" as "pk_uid", "a"."cod_pro" as "cod_pro", "a"."geometry" as "geometry", "b"."avg(prezzo)" as "avg(prezzo)" from "province" as "a" join "province_gasolio_day" as "b" on ("a"."cod_pro" = "b"."cod_pro");
-
-create view "regioni_gasolio_day_spatial" as select "a"."rowid" as "rowid", "a"."pk_uid" as "pk_uid", "a"."cod_reg" as "cod_reg", "a"."geometry" as "geometry", "b"."avg(prezzo)" as "avg(prezzo)" from "regioni" as "a" join "regioni_gasolio_day" as "b" on ("a"."cod_reg" = "b"."cod_reg");
-
-create view "comuni_gasolio_day_spatial" as select "a"."rowid" as "rowid", "a"."pk_uid" as "pk_uid", "a"."cod_istat" as "cod_istat", "a"."geometry" as "geometry", "b"."avg(prezzo)" as "avg(prezzo)" from "comuni" as "a" join "comuni_gasolio_day" as "b" on ("a"."cod_istat" = "b"."cod_istat");
-
-insert into "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") values ( 'comuni_gasolio_day_spatial','geometry','rowid','comuni','geometry',1 );
-
-insert into "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") values ( 'province_gasolio_day_spatial','geometry','rowid','province','geometry',1 );
-
-insert into "views_geometry_columns"("view_name","view_geometry","view_rowid","f_table_name","f_geometry_column","read_only") values ( 'regioni_gasolio_day_spatial','geometry','rowid','regioni','geometry',1 );
+create view comuni_benzina_yesterday_spatial as select a.rowid as rowid, a.pk_uid as pk_uid, a.cod_istat as cod_istat, a.geom as geom, b.avg(prezzo) as avg(prezzo) from comuni as a join comuni_benzina_yesterday as b on (a.cod_istat = b.cod_istat);*/
