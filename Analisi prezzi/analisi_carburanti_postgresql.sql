@@ -100,17 +100,29 @@ drop table if exists distributori_prezzi_analisi_gasolio cascade;
 
 drop table if exists distributori_prezzi_analisi_benzina cascade;
 
-drop view if exists comuni_gasolio_yesterday cascade;
+drop table if exists comuni_gasolio_yesterday cascade;
 
-drop view if exists province_gasolio_yesterday cascade;
+drop table if exists province_gasolio_yesterday cascade;
 
-drop view if exists regioni_gasolio_yesterday cascade;
+drop table if exists regioni_gasolio_yesterday cascade;
 
-drop view if exists comuni_benzina_yesterday cascade;
+drop table if exists comuni_benzina_yesterday cascade;
 
-drop view if exists province_benzina_yesterday cascade;
+drop table if exists province_benzina_yesterday cascade;
 
-drop view if exists regioni_benzina_yesterday cascade;
+drop table if exists regioni_benzina_yesterday cascade;
+
+drop table if exists comuni_gasolio_yesterday_spatial cascade;
+
+drop table if exists province_gasolio_yesterday_spatial cascade;
+
+drop table if exists regioni_gasolio_yesterday_spatial cascade;
+
+drop table if exists comuni_benzina_yesterday_spatial cascade;
+
+drop table if exists province_benzina_yesterday_spatial cascade;
+
+drop table if exists regioni_benzina_yesterday_spatial cascade;
 
 create table tmp1 as select * from distributori;
 
@@ -309,3 +321,7 @@ create index index_cod_istat_comuni_benzina_yesterday_spatial on comuni_benzina_
 create index index_prezzo_comuni_benzina_yesterday_spatial on comuni_benzina_yesterday_spatial (prezzo_medio);
 
 alter table comuni_benzina_yesterday_spatial add primary key (cod_istat);
+
+/*create view distributori_prezzi_massimi_benzina_comune as*/
+select a.id_d, a.bnd, a.name, a.cod_istat, min(a.prezzo) as prezzo_minimo, a.geom, b.nome
+from distributori_prezzi_analisi_benzina as a, comuni as b where a.cod_istat = b.cod_istat group by a.id_d, a.bnd, a.name, a.cod_istat, a.geom, b.nome order by cod_istat;
