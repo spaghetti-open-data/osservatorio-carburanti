@@ -1,0 +1,6 @@
+#psql --host 127.0.0.1 --port 5432 --dbname develope < aggiorna.sql
+# runs your command at 00:00 every day
+#
+# min hour wday month mday command-to-run
+# crontab -e
+    0    1    *     *    * psql --host 127.0.0.1 --port 5432 --dbname develope < /home/virtualadmin/dati/scrip/sql/aggiorna.sql &>/home/virtualadmin/dati/logs/aggiona_error.log
