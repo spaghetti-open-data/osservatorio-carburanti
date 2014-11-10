@@ -8,6 +8,8 @@ sudo ufw enable
 
 ssh -L 8080:ubuntuServ1204E.cloudapp.net:5432 virtualadmin@ubuntuServ1204E.cloudapp.net
 
+nohup comando &
+
 shp2pgsql -W "latin1" -s 32632 -c -g geom -I Com2011_WGS84.shp public.comuni | psql -d develope -U postgres 
 
 shp2pgsql -W "latin1" -s 32632 -c -g geom -I Prov2011_WGS84.shp public.province | psql -d develope -U postgres 
@@ -346,8 +348,7 @@ create index index_prezzo_comuni_benzina_today_spatial on comuni_benzina_today_s
 
 alter table comuni_benzina_today_spatial add primary key (cod_istat);
 
-create table distributori_prezzi_massimi_benzina_comune as select a.id_d, a.bnd, a.name, a.cod_istat, max(a.prezzo) as prezzo_massimo, a.geom, b.nome
-  from distributori_prezzi_analisi_benzina as a, comuni as b where a.cod_istat = b.cod_istat group by a.id_d, a.bnd, a.name, a.cod_istat, a.geom, b.nome order by cod_istat;
+create table distributori_prezzi_massimi_benzina_comune as select a.id_d, a.bnd, a.name, a.cod_istat, max(a.prezzo) as prezzo_massimo, a.geom, b.nome from distributori_prezzi_analisi_benzina as a, comuni as b where a.cod_istat = b.cod_istat group by a.id_d, a.bnd, a.name, a.cod_istat, a.geom, b.nome order by cod_istat;
 
 create index distributori_prezzi_massimi_benzina_comune_gix on distributori_prezzi_massimi_benzina_comune using gist (geom);
 
@@ -377,7 +378,7 @@ create index distributori_prezzi_minimi_benzina_provincia_gix on distributori_pr
 
 create table distributori_prezzi_minimi_gasolio_provincia as select a.id_d, a.bnd, a.name, a.cod_pro, min(a.prezzo) as prezzo_minimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, province as b where a.cod_pro = b.cod_pro group by a.id_d, a.bnd, a.name, a.cod_pro, a.geom, b.nome order by cod_pro;
 
-create index distributori_prezzi_minimi_gasolio_provincia_gix on distributori_prezzi_minimi_benzina_gasolio using gist (geom);
+create index distributori_prezzi_minimi_gasolio_provincia_gix on distributori_prezzi_minimi_gasolio using gist (geom);
 
 create table distributori_prezzi_massimi_gasolio_regione as select a.id_d, a.bnd, a.name, a.cod_reg, max(a.prezzo) as prezzo_massimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, regioni as b where a.cod_reg = b.cod_reg group by a.id_d, a.bnd, a.name, a.cod_reg, a.geom, b.nome order by cod_reg;
 
