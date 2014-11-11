@@ -92,6 +92,12 @@ drop table if exists tmp11 cascade;
 
 drop table if exists tmp12 cascade;
 
+drop table if exists tmp13 cascade;
+
+drop table if exists tmp14 cascade;
+
+drop table if exists tmp15 cascade;
+
 drop table if exists distributori_ cascade;
 
 drop table if exists prezzi_ cascade;
@@ -154,7 +160,7 @@ update tmp1 set name = replace( name, '"', '' ), addr = replace( addr, '"', '' )
 
 update tmp1 set lat = round(lat, 7), lon = round(lon, 7);
 
-/* attenzione ai distributori costieri al di fuori dei poligoni ISTA dei comuni */
+/* attenzione ai distributori costieri, molti sono al di fuori dei poligoni ISTAT dei comuni */
 
 create table distributori_ (id integer not null primary key, addr text, bnd text, comune text, lat numeric, lon numeric, name text, provincia text);
 
@@ -348,50 +354,45 @@ create index index_prezzo_comuni_benzina_today_spatial on comuni_benzina_today_s
 
 alter table comuni_benzina_today_spatial add primary key (cod_istat);
 
-create table distributori_prezzi_massimi_benzina_comune as select a.id_d, a.bnd, a.name, a.cod_istat, max(a.prezzo) as prezzo_massimo, a.geom, b.nome from distributori_prezzi_analisi_benzina as a, comuni as b where a.cod_istat = b.cod_istat group by a.id_d, a.bnd, a.name, a.cod_istat, a.geom, b.nome order by cod_istat;
+/* utilità dei valori minimi massimi dubbia
+create table tmp13 AS select cod_istat, max(prezzo) as prezzo_massimo from distributori_prezzi_analisi_gasolio where data = now()::timestamp::date group by cod_istat;
 
-create index distributori_prezzi_massimi_benzina_comune_gix on distributori_prezzi_massimi_benzina_comune using gist (geom);
+create table distributori_prezzi_massimi_gasolio_comune_spatial as select distinct a.cod_istat as cod_istat, a.id_d as id_d, a.bnd as bnd, a.name as name, a.carb as carb, a.prezzo as prezzo, a.geom from distributori_prezzi_analisi_gasolio as a, tmp13 as b where a.cod_istat = b.cod_istat and a.prezzo = b.prezzo_massimo;
 
-create table distributori_prezzi_massimi_gasolio_comune as select a.id_d, a.bnd, a.name, a.cod_istat, max(a.prezzo) as prezzo_massimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, comuni as b where a.cod_istat = b.cod_istat group by a.id_d, a.bnd, a.name, a.cod_istat, a.geom, b.nome order by cod_istat;
+alter table distributori_prezzi_massimi_gasolio_comune_spatial add primary key (id_d);
 
-create index distributori_prezzi_massimi_gasolio_comune_gix on distributori_prezzi_massimi_gasolio_comune using gist (geom);
+create index distributori_prezzi_massimi_gasolio_comune_spatial_gix on distributori_prezzi_massimi_gasolio_comune_spatial using gist (geom);
 
-create table distributori_prezzi_minimi_benzina_comune as select a.id_d, a.bnd, a.name, a.cod_istat, min(a.prezzo) as prezzo_minimo, a.geom, b.nome from distributori_prezzi_analisi_benzina as a, comuni as b where a.cod_istat = b.cod_istat group by a.id_d, a.bnd, a.name, a.cod_istat, a.geom, b.nome order by cod_istat;
+create table tmp14 AS select cod_istat, max(prezzo) as prezzo_massimo from distributori_prezzi_analisi_benzina where data = now()::timestamp::date group by cod_istat;
 
-create index distributori_prezzi_minimi_benzina_comune_gix on distributori_prezzi_minimi_benzina_comune using gist (geom);
+create table distributori_prezzi_massimi_benzina_comune_spatial as select distinct a.cod_istat as cod_istat, a.id_d as id_d, a.bnd as bnd, a.name as name, a.carb as carb, a.prezzo as prezzo, a.geom from distributori_prezzi_analisi_benzina as a, tmp14 as b where a.cod_istat = b.cod_istat and a.prezzo = b.prezzo_massimo;
 
-create table distributori_prezzi_minimi_gasolio_comune as select a.id_d, a.bnd, a.name, a.cod_istat, min(a.prezzo) as prezzo_minimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, comuni as b where a.cod_istat = b.cod_istat group by a.id_d, a.bnd, a.name, a.cod_istat, a.geom, b.nome order by cod_istat;
+alter table distributori_prezzi_massimi_benzina_comune_spatial add primary key (id_d);
 
-create index distributori_prezzi_minimi_gasolio_comune_gix on distributori_prezzi_minimi_gasolio_comune using gist (geom);
+create index distributori_prezzi_massimi_benzina_comune_spatial_gix on distributori_prezzi_massimi_benzina_comune_spatial using gist (geom);
 
-create table distributori_prezzi_massimi_benzina_provincia as select a.id_d, a.bnd, a.name, a.cod_pro, max(a.prezzo) as prezzo_massimo, a.geom, b.nome from distributori_prezzi_analisi_benzina as a, province as b where a.cod_pro = b.cod_pro group by a.id_d, a.bnd, a.name, a.cod_pro, a.geom, b.nome order by cod_pro;
+create table tmp15 AS select cod_istat, min(prezzo) as prezzo_minimo from distributori_prezzi_analisi_gasolio where data = now()::timestamp::date group by cod_istat;
 
-create index distributori_prezzi_massimi_benzina_provincia_gix on distributori_prezzi_massimi_benzina_provincia using gist (geom);
+create table distributori_prezzi_minimi_gasolio_comune_spatial as select distinct a.cod_istat as cod_istat, a.id_d as id_d, a.bnd as bnd, a.name as name, a.carb as carb, a.prezzo as prezzo, a.geom from distributori_prezzi_analisi_gasolio as a, tmp15 as b where a.cod_istat = b.cod_istat and a.prezzo = b.prezzo_minimo;
 
-create table distributori_prezzi_massimi_gasolio_provincia as select a.id_d, a.bnd, a.name, a.cod_pro, max(a.prezzo) as prezzo_massimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, province as b where a.cod_pro = b.cod_pro group by a.id_d, a.bnd, a.name, a.cod_pro, a.geom, b.nome order by cod_pro;
+alter table distributori_prezzi_minimi_gasolio_comune_spatial add primary key (id_d);
 
-create index distributori_prezzi_massimi_gasolio_provincia_gix on distributori_prezzi_massimi_gasolio_provincia using gist (geom);
+create index distributori_prezzi_minimi_gasolio_comune_spatial_gix on distributori_prezzi_minimi_gasolio_comune_spatial using gist (geom);
+*/
 
-create table distributori_prezzi_minimi_benzina_provincia as select a.id_d, a.bnd, a.name, a.cod_pro, min(a.prezzo) as prezzo_minimo, a.geom, b.nome from distributori_prezzi_analisi_benzina as a, province as b where a.cod_pro = b.cod_pro group by a.id_d, a.bnd, a.name, a.cod_pro, a.geom, b.nome order by cod_pro;
 
-create index distributori_prezzi_minimi_benzina_provincia_gix on distributori_prezzi_minimi_benzina_provincia using gist (geom);
 
-create table distributori_prezzi_minimi_gasolio_provincia as select a.id_d, a.bnd, a.name, a.cod_pro, min(a.prezzo) as prezzo_minimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, province as b where a.cod_pro = b.cod_pro group by a.id_d, a.bnd, a.name, a.cod_pro, a.geom, b.nome order by cod_pro;
 
-create index distributori_prezzi_minimi_gasolio_provincia_gix on distributori_prezzi_minimi_gasolio_provincia using gist (geom);
 
-create table distributori_prezzi_massimi_gasolio_regione as select a.id_d, a.bnd, a.name, a.cod_reg, max(a.prezzo) as prezzo_massimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, regioni as b where a.cod_reg = b.cod_reg group by a.id_d, a.bnd, a.name, a.cod_reg, a.geom, b.nome order by cod_reg;
 
-create index distributori_prezzi_massimi_gasolio_regione_gix on distributori_prezzi_massimi_gasolio_regione using gist (geom);
 
-create table distributori_prezzi_massimi_benzina_regione as select a.id_d, a.bnd, a.name, a.cod_reg, max(a.prezzo) as prezzo_massimo, a.geom, b.nome from distributori_prezzi_analisi_benzina as a, regioni as b where a.cod_reg = b.cod_reg group by a.id_d, a.bnd, a.name, a.cod_reg, a.geom, b.nome order by cod_reg;
 
-create index distributori_prezzi_massimi_benzina_regione_gix on distributori_prezzi_massimi_benzina_regione using gist (geom);
 
-create table distributori_prezzi_minimi_gasolio_regione as select a.id_d, a.bnd, a.name, a.cod_reg, min(a.prezzo) as prezzo_minimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, regioni as b where a.cod_reg = b.cod_reg group by a.id_d, a.bnd, a.name, a.cod_reg, a.geom, b.nome order by cod_reg;
 
-create index distributori_prezzi_minimi_gasolio_regione_gix on distributori_prezzi_minimi_gasolio_regione using gist (geom);
 
-create table distributori_prezzi_minimi_benzina_regione as select a.id_d, a.bnd, a.name, a.cod_reg, min(a.prezzo) as prezzo_minimi, a.geom, b.nome from distributori_prezzi_analisi_benzina as a, regioni as b where a.cod_reg = b.cod_reg group by a.id_d, a.bnd, a.name, a.cod_reg, a.geom, b.nome order by cod_reg;
 
-create index distributori_prezzi_minimi_benzina_regione_gix on distributori_prezzi_minimi_benzina_regione using gist (geom);
+
+
+
+
+
