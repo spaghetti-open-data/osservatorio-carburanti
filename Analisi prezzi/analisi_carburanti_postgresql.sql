@@ -378,7 +378,7 @@ create index distributori_prezzi_minimi_benzina_provincia_gix on distributori_pr
 
 create table distributori_prezzi_minimi_gasolio_provincia as select a.id_d, a.bnd, a.name, a.cod_pro, min(a.prezzo) as prezzo_minimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, province as b where a.cod_pro = b.cod_pro group by a.id_d, a.bnd, a.name, a.cod_pro, a.geom, b.nome order by cod_pro;
 
-create index distributori_prezzi_minimi_gasolio_provincia_gix on distributori_prezzi_minimi_gasolio using gist (geom);
+create index distributori_prezzi_minimi_gasolio_provincia_gix on distributori_prezzi_minimi_gasolio_provincia using gist (geom);
 
 create table distributori_prezzi_massimi_gasolio_regione as select a.id_d, a.bnd, a.name, a.cod_reg, max(a.prezzo) as prezzo_massimo, a.geom, b.nome from distributori_prezzi_analisi_gasolio as a, regioni as b where a.cod_reg = b.cod_reg group by a.id_d, a.bnd, a.name, a.cod_reg, a.geom, b.nome order by cod_reg;
 

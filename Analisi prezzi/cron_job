@@ -4,3 +4,7 @@
 # min hour wday month mday command-to-run
 # crontab -e
 0    3    *     *    *  /home/virtualadmin/dati/script/cron_script/aggiorna.sh
+
+
+40    *    *     *    *  date >> /home/virtualadmin/dati/script/cron_script/logs/cron_test.txt
+41    *    *     *    *  echo "Cron test eseguito: $(date)" >> /home/virtualadmin/dati/script/cron_script/logs/mybackup.log
