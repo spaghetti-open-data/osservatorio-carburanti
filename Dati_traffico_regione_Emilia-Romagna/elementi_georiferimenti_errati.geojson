@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+                                                                                
+"features": [
+{ "type": "Feature", "properties": { "NUMERO_PROGRESSIVO": 86, "POSTAZIONE": 238, "LATITUDINE": "44°36'40\"", "Y": 44.611111, "LONGITUDINE": "10°3801\"", "X": 73.350000, "TRATTO": "SP 37 fra Albinea e Scandiano (bivio SP 7)", "NN_CORSIE": 2, "CORSIA": 0, "DIREZIONE_MARCIA_LOCALITA'": "DA ALBINEA A SCANDIANO", "PROGRESSIVA_KM": "2,881" }, "geometry": { "type": "Point", "coordinates": [ 73.35, 44.61111111 ] } },
+{ "type": "Feature", "properties": { "NUMERO_PROGRESSIVO": 217, "POSTAZIONE": 449, "LATITUDINE": "44°45'55\"", "Y": 44.765278, "LONGITUDINE": "10°3001\"", "X": 60.016667, "TRATTO": "SP 111 fra via Emilia e la variante Asse Val d'Enza", "NN_CORSIE": 2, "CORSIA": 0, "DIREZIONE_MARCIA_LOCALITA'": "DA SS9 (CALERNO - SANT'ILARIO D'ENZA) A BORETTO", "PROGRESSIVA_KM": "2,15" }, "geometry": { "type": "Point", "coordinates": [ 60.01666667, 44.76527778 ] } },
+{ "type": "Feature", "properties": { "NUMERO_PROGRESSIVO": 217, "POSTAZIONE": 449, "LATITUDINE": "44°45'55\"", "Y": 44.765278, "LONGITUDINE": "10°3001\"", "X": 60.016667, "TRATTO": "SP 111 fra via Emilia e la variante Asse Val d'Enza", "NN_CORSIE": 2, "CORSIA": 1, "DIREZIONE_MARCIA_LOCALITA'": "DA BORETTO A SS9 (CALERNO - SANT'ILARIO D'ENZA)", "PROGRESSIVA_KM": "2,15" }, "geometry": { "type": "Point", "coordinates": [ 60.01666667, 44.76527778 ] } }
+]
+}

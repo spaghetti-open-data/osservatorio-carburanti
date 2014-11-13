@@ -1,0 +1,12 @@
+#psql --host 127.0.0.1 --port 5432 --dbname develope < aggiorna.sql
+# runs your command at 00:00 every day
+#
+# min hour wday month mday command-to-run
+# crontab -e
+0    3    *     *    *  /home/virtualadmin/dati/script/cron_script/aggiorna.sh
+
+# test
+# 40    *    *     *    *  date >> /home/virtualadmin/dati/script/cron_script/logs/cron_test.txt
+# 41    *    *     *    *  echo "Cron test eseguito: $(date)" >> /home/virtualadmin/dati/script/cron_script/logs/mybackup.log
+
+ grep CRON /var/log/syslog
