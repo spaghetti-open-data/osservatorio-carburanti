@@ -12,9 +12,16 @@ nohup comando &
 
 shp2pgsql -W "latin1" -s 32632 -c -g geom -I Com2011_WGS84.shp public.comuni | psql -d develope -U postgres 
 
+shp2pgsql -W "latin1" -s 32632 -c -g geom -I Com2011_WGS84.shp public.comuni | '/Applications/Postgres.app/Contents/Versions/9.3/bin'/psql -d lorenzo -U lorenzo 
+
 shp2pgsql -W "latin1" -s 32632 -c -g geom -I Prov2011_WGS84.shp public.province | psql -d develope -U postgres 
 
+shp2pgsql -W "latin1" -s 32632 -c -g geom -I Prov2011_WGS84.shp public.province | '/Applications/Postgres.app/Contents/Versions/9.3/bin'/psql -d lorenzo -U lorenzo 
+
 shp2pgsql -W "latin1" -s 32632 -c -g geom -I Reg2011_WGS84.shp public.regioni | psql -d develope -U postgres 
+
+shp2pgsql -W "latin1" -s 32632 -c -g geom -I Reg2011_WGS84.shp public.regioni | '/Applications/Postgres.app/Contents/Versions/9.3/bin'/psql -d lorenzo -U lorenzo 
+
 
 
 CREATE TABLE "public"."distributori" (
@@ -61,7 +68,7 @@ INSERT INTO calendar (data, year, month, day, quarter, day_of_week, day_of_year,
   EXTRACT(WEEK FROM ts)
   FROM generate_series('2012-01-01'::timestamp, '2038-01-01', '1day'::interval) AS t(ts));
 
-create index index_data_calendar on distributori_prezzi_analisi_gasolio (data);
+create index index_data_calendar on calendar (data);
 */
 
 drop table if exists tmp1 cascade;
@@ -258,101 +265,101 @@ update distributori_prezzi_analisi_benzina set geom=st_transform(st_setsrid(st_m
 
 create index distributori_prezzi_analisi_benzina_gix on distributori_prezzi_analisi_benzina using gist (geom);
 
-create table province_gasolio_today as select avg(prezzo) as prezzo_medio, cod_pro from distributori_prezzi_analisi_gasolio where data = cast((NOW()::timestamp::date) as timestamp) group by cod_pro;
+create table province_prezzo_medio_gasolio_today as select a.cod_pro, b.nome, avg(a.prezzo) as prezzo_medio from distributori_prezzi_analisi_gasolio as a, province as b where data = cast((NOW()::timestamp::date) as timestamp) and a.cod_pro = b.cod_pro group by a.cod_pro, b.nome;
 
-create index index_cod_pro_province_gasolio_today on province_gasolio_today (cod_pro);
+create index index_cod_pro_province_prezzo_medio_gasolio_today on province_prezzo_medio_gasolio_today (cod_pro);
 
-create index index_prezzo_province_gasolio_today on province_gasolio_today (prezzo_medio);
+create index index_prezzo_province_prezzo_medio_gasolio_today on province_prezzo_medio_gasolio_today (prezzo_medio);
 
-create table regioni_gasolio_today as select avg(prezzo) as prezzo_medio, cod_reg from distributori_prezzi_analisi_gasolio where data = cast((NOW()::timestamp::date) as timestamp)  group by cod_reg;
+create table regioni_prezzo_medio_gasolio_today as select a.cod_reg, b.nome, avg(a.prezzo) as prezzo_medio from distributori_prezzi_analisi_gasolio as a, regioni as b where data = cast((NOW()::timestamp::date) as timestamp) and a.cod_reg = b.cod_reg group by a.cod_reg, b.nome;
 
-create index index_cod_reg_regioni_gasolio_today on regioni_gasolio_today (cod_reg);
+create index index_cod_reg_regioni_prezzo_medio_gasolio_today on regioni_prezzo_medio_gasolio_today (cod_reg);
 
-create index index_prezzo_regioni_gasolio_today on regioni_gasolio_today (prezzo_medio);
+create index index_prezzo_regioni_prezzo_medio_gasolio_today on regioni_prezzo_medio_gasolio_today (prezzo_medio);
 
-create table comuni_gasolio_today as select avg(prezzo) as prezzo_medio, cod_istat from distributori_prezzi_analisi_gasolio where data = cast((NOW()::timestamp::date) as timestamp)  group by cod_istat;
+create table comuni_prezzo_medio_gasolio_today as select a.cod_istat, b.nome, avg(a.prezzo) as prezzo_medio from distributori_prezzi_analisi_gasolio as a, comuni as b where data = cast((NOW()::timestamp::date) as timestamp) and a.cod_istat = b.cod_istat group by a.cod_istat, b.nome;
 
-create index index_cod_istat_comuni_gasolio_today on comuni_gasolio_today (cod_istat);
+create index index_cod_istat_comuni_prezzo_medio_gasolio_today on comuni_prezzo_medio_gasolio_today (cod_istat);
 
-create index index_prezzo_comuni_gasolio_today on comuni_gasolio_today (prezzo_medio);
+create index index_prezzo_comuni_prezzo_medio_gasolio_today on comuni_prezzo_medio_gasolio_today (prezzo_medio);
 
-create table province_gasolio_today_spatial as select a.cod_pro as cod_pro, a.geom as geom, b.prezzo_medio as prezzo_medio from province as a join province_gasolio_today as b on (a.cod_pro = b.cod_pro);
+create table province_prezzo_medio_gasolio_today_spatial as select a.cod_pro, a.nome, a.geom, b.prezzo_medio as prezzo_medio from province as a join province_prezzo_medio_gasolio_today as b on (a.cod_pro = b.cod_pro);
 
-create index province_gasolio_today_spatial_gix on province_gasolio_today_spatial using gist (geom);
+create index province_prezzo_medio_gasolio_today_spatial_gix on province_prezzo_medio_gasolio_today_spatial using gist (geom);
 
-create index index_cod_pro_province_gasolio_today_spatial on province_gasolio_today_spatial (cod_pro);
+create index index_cod_pro_province_prezzo_medio_gasolio_today_spatial on province_prezzo_medio_gasolio_today_spatial (cod_pro);
 
-create index index_prezzo_province_gasolio_today_spatial on province_gasolio_today_spatial (prezzo_medio);
+create index index_prezzo_province_prezzo_medio_gasolio_today_spatial on province_prezzo_medio_gasolio_today_spatial (prezzo_medio);
 
-alter table province_gasolio_today_spatial add primary key (cod_pro);
+alter table province_prezzo_medio_gasolio_today_spatial add primary key (cod_pro);
 
-create table regioni_gasolio_today_spatial as select a.cod_reg as cod_reg, a.geom as geom, b.prezzo_medio as prezzo_medio from regioni as a join regioni_gasolio_today as b on (a.cod_reg = b.cod_reg);
+create table regioni_prezzo_medio_gasolio_today_spatial as select a.cod_reg, a.nome, a.geom, b.prezzo_medio as prezzo_medio from regioni as a join regioni_prezzo_medio_gasolio_today as b on (a.cod_reg = b.cod_reg);
 
-create index regioni_gasolio_today_spatial_gix on regioni_gasolio_today_spatial using gist (geom);
+create index regioni_prezzo_medio_gasolio_today_spatial_gix on regioni_prezzo_medio_gasolio_today_spatial using gist (geom);
 
-create index index_cod_reg_regioni_gasolio_today_spatial on regioni_gasolio_today_spatial (cod_reg);
+create index index_cod_reg_regioni_prezzo_medio_gasolio_today_spatial on regioni_prezzo_medio_gasolio_today_spatial (cod_reg);
 
-create index index_prezzo_regioni_gasolio_today_spatial on regioni_gasolio_today_spatial (prezzo_medio);
+create index index_prezzo_regioni_prezzo_medio_gasolio_today_spatial on regioni_prezzo_medio_gasolio_today_spatial (prezzo_medio);
 
-alter table regioni_gasolio_today_spatial add primary key (cod_reg);
+alter table regioni_prezzo_medio_gasolio_today_spatial add primary key (cod_reg);
 
-create table comuni_gasolio_today_spatial as select a.cod_istat as cod_istat, a.geom as geom, b.prezzo_medio as prezzo_medio from comuni as a join comuni_gasolio_today as b on (a.cod_istat = b.cod_istat);
+create table comuni_prezzo_medio_gasolio_today_spatial as select a.cod_istat, a.nome, a.geom as geom, b.prezzo_medio as prezzo_medio from comuni as a join comuni_prezzo_medio_gasolio_today as b on (a.cod_istat = b.cod_istat);
 
-create index comuni_gasolio_today_spatial_gix on comuni_gasolio_today_spatial using gist (geom);
+create index comuni_prezzo_medio_gasolio_today_spatial_gix on comuni_prezzo_medio_gasolio_today_spatial using gist (geom);
 
-create index index_cod_istat_comuni_gasolio_today_spatial on comuni_gasolio_today_spatial (cod_istat);
+create index index_cod_istat_comuni_prezzo_medio_gasolio_today_spatial on comuni_prezzo_medio_gasolio_today_spatial (cod_istat);
 
-create index index_prezzo_comuni_gasolio_today_spatial on comuni_gasolio_today_spatial (prezzo_medio);
+create index index_prezzo_comuni_prezzo_medio_gasolio_today_spatial on comuni_prezzo_medio_gasolio_today_spatial (prezzo_medio);
 
-alter table comuni_gasolio_today_spatial add primary key (cod_istat);
+alter table comuni_prezzo_medio_gasolio_today_spatial add primary key (cod_istat);
 
-create table province_benzina_today as select avg(prezzo) as prezzo_medio, cod_pro from distributori_prezzi_analisi_benzina where data = cast((NOW()::timestamp::date) as timestamp) group by cod_pro;
+create table province_prezzo_medio_benzina_today as select avg(a.prezzo) as prezzo_medio, a.cod_pro, b.nome from distributori_prezzi_analisi_benzina as a, province as b where data = cast((NOW()::timestamp::date) as timestamp) and a.cod_pro = b.cod_pro group by a.cod_pro, b.nome;
 
-create index index_cod_pro_province_benzina_today on province_benzina_today (cod_pro);
+create index index_cod_pro_province_prezzo_medio_benzina_today on province_prezzo_medio_benzina_today (cod_pro);
 
-create index index_prezzo_province_benzina_today on province_benzina_today (prezzo_medio);
+create index index_prezzo_province_prezzo_medio_benzina_today on province_prezzo_medio_benzina_today (prezzo_medio);
 
-create table regioni_benzina_today as select avg(prezzo) as prezzo_medio, cod_reg from distributori_prezzi_analisi_benzina where data = cast((NOW()::timestamp::date) as timestamp)  group by cod_reg;
+create table regioni_prezzo_medio_benzina_today as select avg(a.prezzo) as prezzo_medio, a.cod_reg, b.nome from distributori_prezzi_analisi_benzina as a, regioni as b where data = cast((NOW()::timestamp::date) as timestamp) and a.cod_reg = b.cod_reg group by a.cod_reg, b.nome;
 
-create index index_cod_reg_regioni_benzina_today on regioni_benzina_today (cod_reg);
+create index index_cod_reg_regioni_prezzo_medio_benzina_today on regioni_prezzo_medio_benzina_today (cod_reg);
 
-create index index_prezzo_regioni_benzina_today on regioni_benzina_today (prezzo_medio);
+create index index_prezzo_rregioni_prezzo_medio_benzina_today on regioni_prezzo_medio_benzina_today (prezzo_medio);
 
-create table comuni_benzina_today as select avg(prezzo) as prezzo_medio, cod_istat from distributori_prezzi_analisi_benzina where data = cast((NOW()::timestamp::date) as timestamp)  group by cod_istat;
+create table comuni_prezzo_medio_benzina_today as select avg(a.prezzo) as prezzo_medio, a.cod_istat, b.nome from distributori_prezzi_analisi_benzina as a, comuni as b where data = cast((NOW()::timestamp::date) as timestamp) and a.cod_istat = b.cod_istat group by a.cod_istat, b.nome;
 
-create index index_cod_istat_comuni_benzina_today on comuni_benzina_today (cod_istat);
+create index index_cod_istat_comuni_prezzo_medio_benzina_today on comuni_prezzo_medio_benzina_today (cod_istat);
 
-create index index_prezzo_comuni_benzina_today on comuni_benzina_today (prezzo_medio);
+create index index_prezzo_comuni_prezzo_medio_benzina_today on comuni_prezzo_medio_benzina_today (prezzo_medio);
 
-create table province_benzina_today_spatial as select a.cod_pro as cod_pro, a.geom as geom, b.prezzo_medio as prezzo_medio from province as a join province_benzina_today as b on (a.cod_pro = b.cod_pro);
+create table province_prezzo_medio_benzina_today_spatial as select a.cod_pro, a.nome, a.geom, b.prezzo_medio as prezzo_medio from province as a join province_prezzo_medio_benzina_today as b on (a.cod_pro = b.cod_pro);
 
-create index province_benzina_today_spatial_gix on province_benzina_today_spatial using gist (geom);
+create index province_prezzo_medio_benzina_today_spatial_gix on province_prezzo_medio_benzina_today_spatial using gist (geom);
 
-create index index_cod_pro_province_benzina_today_spatial on province_benzina_today_spatial (cod_pro);
+create index index_cod_pro_province_prezzo_medio_benzina_today_spatial on province_prezzo_medio_benzina_today_spatial (cod_pro);
 
-create index index_prezzo_province_benzina_today_spatial on province_benzina_today_spatial (prezzo_medio);
+create index index_prezzo_province_prezzo_medio_benzina_today_spatial on province_prezzo_medio_benzina_today_spatial (prezzo_medio);
 
-alter table province_benzina_today_spatial add primary key (cod_pro);
+alter table province_prezzo_medio_benzina_today_spatial add primary key (cod_pro);
 
-create table regioni_benzina_today_spatial as select a.cod_reg as cod_reg, a.geom as geom, b.prezzo_medio as prezzo_medio from regioni as a join regioni_benzina_today as b on (a.cod_reg = b.cod_reg);
+create table regioni_prezzo_medio_benzina_today_spatial as select a.cod_reg, a.nome, a.geom, b.prezzo_medio as prezzo_medio from regioni as a join regioni_prezzo_medio_benzina_today as b on (a.cod_reg = b.cod_reg);
 
-create index regioni_benzina_today_spatial_gix on regioni_benzina_today_spatial using gist (geom);
+create index regioni_prezzo_medio_benzina_today_spatial_gix on regioni_prezzo_medio_benzina_today_spatial using gist (geom);
 
-create index index_cod_reg_regioni_benzina_today_spatial on regioni_benzina_today_spatial (cod_reg);
+create index index_cod_reg_regioni_prezzo_medio_benzina_today_spatial on regioni_prezzo_medio_benzina_today_spatial (cod_reg);
 
-create index index_prezzo_regioni_benzina_today_spatial on regioni_benzina_today_spatial (prezzo_medio);
+create index index_prezzo_regioni_prezzo_medio_benzina_today_spatial on regioni_prezzo_medio_benzina_today_spatial (prezzo_medio);
 
-alter table regioni_benzina_today_spatial add primary key (cod_reg);
+alter table regioni_prezzo_medio_benzina_today_spatial add primary key (cod_reg);
 
-create table comuni_benzina_today_spatial as select a.cod_istat as cod_istat, a.geom as geom, b.prezzo_medio as prezzo_medio from comuni as a join comuni_benzina_today as b on (a.cod_istat = b.cod_istat);
+create table comuni_prezzo_medio_benzina_today_spatial as select a.cod_istat, a.nome, a.geom, b.prezzo_medio as prezzo_medio from comuni as a join comuni_prezzo_medio_benzina_today as b on (a.cod_istat = b.cod_istat);
 
-create index comuni_benzina_today_spatial_gix on comuni_benzina_today_spatial using gist (geom);
+create index comuni_prezzo_medio_benzina_today_spatial_gix on comuni_prezzo_medio_benzina_today_spatial using gist (geom);
 
-create index index_cod_istat_comuni_benzina_today_spatial on comuni_benzina_today_spatial (cod_istat);
+create index index_cod_istat_comuni_prezzo_medio_benzina_today_spatial on comuni_prezzo_medio_benzina_today_spatial (cod_istat);
 
-create index index_prezzo_comuni_benzina_today_spatial on comuni_benzina_today_spatial (prezzo_medio);
+create index index_prezzo_comuni_prezzo_medio_benzina_today_spatial on comuni_prezzo_medio_benzina_today_spatial (prezzo_medio);
 
-alter table comuni_benzina_today_spatial add primary key (cod_istat);
+alter table comuni_prezzo_medio_benzina_today_spatial add primary key (cod_istat);
 
 /* utilità dei valori minimi massimi dubbia
 create table tmp13 AS select cod_istat, max(prezzo) as prezzo_massimo from distributori_prezzi_analisi_gasolio where data = now()::timestamp::date group by cod_istat;
