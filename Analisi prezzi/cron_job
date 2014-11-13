@@ -8,3 +8,5 @@
 # test
 # 40    *    *     *    *  date >> /home/virtualadmin/dati/script/cron_script/logs/cron_test.txt
 # 41    *    *     *    *  echo "Cron test eseguito: $(date)" >> /home/virtualadmin/dati/script/cron_script/logs/mybackup.log
+
+ grep CRON /var/log/syslog
